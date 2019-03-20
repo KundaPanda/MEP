@@ -26,6 +26,8 @@ postgre_pool = None
 
 
 class get_cursor:
+    global postgre_pool
+
     def __init__(self):
         if postgre_pool:
             self.connection = postgre_pool.getconn()
@@ -45,6 +47,7 @@ class get_cursor:
         if self.connection and self.cursor:
             self.cursor.close()
             self.connection.close()
+            print("PUTCONN")
             postgre_pool.putconn(self.connection)
             self.connection = None
             self.cursor = None
@@ -61,7 +64,7 @@ def get_pool(pool=None):
     if not postgre_pool:
         try:
             postgre_pool = psycopg2.pool.ThreadedConnectionPool(
-                maxconn=POOL_SIZE, minconn=4, user=USER, host=HOST, port=PORT, database=DB_NAME)
+                maxconn=POOL_SIZE, minconn=1, user=USER, host=HOST, port=PORT, database=DB_NAME)
         except (psycopg2.OperationalError, Exception) as e:
             print(e)
             postgre_pool = None
@@ -75,6 +78,13 @@ def close_pool():
         postgre_pool.closeall()
     print("Postgre pool closed.")
     return 1
+
+
+def free_pool():
+    global postgre_pool
+    if postgre_pool:
+        postgre_pool.closeall()
+    print("Postgre pool reset.")
 
 
 def check_pool():
@@ -122,7 +132,7 @@ def select_code(code, table_name):
         except psycopg2.Error as e:
             print(e)
             time.sleep(0.1)
-    if not i:
+    if i:
         return None
     result = cursor.fetchone()
     cursor_wrapper.dispose()
@@ -133,19 +143,29 @@ def check_and_update_code(code, table_name):
     while (check_pool() != 1):
         time.sleep(0.1)
     current_data = select_code(code, table_name)
+    # print(current_data)
     if current_data:
-        sql_string = "UPDATE %s SET used=%s, time=%s " % (
-            table_name, current_data[2] + 1, datetime.now())
+        if not current_data[2]:
+            used = 0
+        else:
+            used = current_data[2]
+        sql_string = "UPDATE %s SET used=%s, time='%s' WHERE code='%s' " % (
+            table_name, used + 1, datetime.now(), code)
         command_result = simple_sql_command(sql_string)
     else:
         return 1
     return current_data if not command_result else 1
 
 
-def add_entry(code, table_name):
+def add_entries(codes, table_name):
     while (check_pool() != 1):
         time.sleep(0.1)
-    sql_string = "INSERT INTO %s (code) VALUES('%s')" % (table_name, code)
+    codes_string = ""
+    for i in range(len(codes)):
+        codes_string += (codes[i] + ", " * (i != len(codes) - 1))
+    # format_string = "".join("%s, " for _ in range(len(codes)))
+    sql_string = "INSERT INTO %s (code) VALUES %s" % (table_name, codes_string)
+    # print(sql_string)
     command_result = simple_sql_command(sql_string)
     return 1 if command_result else 0
 
@@ -159,7 +179,8 @@ def clear_table(table_name):
     for i in range(5):
         try:
             cursor.execute(sql_string)
-            cursor.execute("SELECT setval('tickets_id_seq', 1)")
+            sql_string = "SELECT setval('%s_id_seq', 1)" % table_name
+            cursor.execute(sql_string)
             cursor_wrapper.commit()
             cursor_wrapper.dispose()
             i = 0
@@ -184,7 +205,8 @@ def create_table(table_name):
     while (check_pool() != 1):
         time.sleep(0.1)
     sql_string = (
-        "CREATE TABLE %s (id serial PRIMARY KEY, code varchar(40), used integer, time TIMESTAMP)" % table_name)
+        "CREATE TABLE %s (id serial PRIMARY KEY, code varchar(40) UNIQUE, used integer, time TIMESTAMP)" % table_name)
+    print(sql_string)
     command_result = simple_sql_command(sql_string)
     return command_result
 

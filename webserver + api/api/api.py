@@ -10,6 +10,7 @@ import atexit
 import string
 import error_handler
 import tempfile
+from psycopg2 import pool
 from time import sleep
 from datetime import datetime
 
@@ -136,20 +137,27 @@ def add_entries(name, size, **kwargs):
     @in size: number of rows to be added
     @out HTTP CODE
     """
+    # TODO: add checking if already in db
     try:
         size = int(size)
+        if size < 0:
+            return Response(status=400)
         name = str(name)
     except Exception as e:
         print(e)
         return Response(status=417)
     try:
-        for i in range(size):
-            code = str(get_random_code(CODE_LENGTH))
-            result = handler.add_entry(code, name)
-            while result:
-                code = str(get_random_code(CODE_LENGTH))
-                result = handler.add_entry(code, name)
-        return Response(status=200)
+        codes = []
+        while len(codes) < size:
+            code = "('" + str(get_random_code(CODE_LENGTH)) + "')"
+            if code not in codes:
+                codes.append(code)
+        result = handler.add_entries(codes, name)
+        return Response(status=200) if not result else Response(status=304)
+    except pool.PoolError as f:
+        print(f)
+        handler.free_pool()
+        return Response(status=500)
     except Exception as e:
         print(e)
         return Response(status=500)
@@ -164,11 +172,11 @@ def select_code(name, code, **kwargs):
 
 
 def update_code(name, code, **kwargs):
-    result = handler.check_and_update_code()
+    result = handler.check_and_update_code(code, name)
     if result != 1:
         return jsonify(result), 200
     else:
-        return Response(status=200)
+        return Response(status=304)
 
 
 methods_ui = {
@@ -190,6 +198,7 @@ methods_client = {
 parameter_names = {
     "create_table": ["name", "size"],
     "delete_table": ["name"],
+    "clear_table": ["name"],
     "backup_db": [],
     "restore_db": ["data"],
     "add_entries": ["name", "size"],
