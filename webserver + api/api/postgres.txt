@@ -1,0 +1,13 @@
+/etc/postgresql/x.x/main/pg_ident.conf
+sudo -u postgres psql
+ALTER USER postgres with encrypted password 'your_password';
+sudo -u postgres createdb <dbname>
+createdb -h localhost -p 5432 -U dbuser testdb
+DROP DATABASE [IF EXISTS] name;
+sudo systemctl restart postgresql-11.service
+
+# IPv4 local connections:
+host    all              all             127.0.0.1/32             md5
+# IPv6 local connections:
+host    all              all             ::1/128                  md5
+-> pgsql show hba_file ;

@@ -1,161 +1,144 @@
 #!C:/Users/vojdo/AppData/Local/Programs/Python/Python37/python.exe
 
-import sqlite3
-from sqlite3worker import Sqlite3Worker
-import cgitb
-import json
-import sys, inspect
-import hashlib
-import copy
-from time import time
+import psycopg2
+import psycopg2.pool
+import time
+
+POOL_SIZE = 200
+COLUMNS = ("id", "code", "used", "time")
+
+postgre_pool = None
 
 
-class ticket:
-    def __init__(t, ID, num, countt, used, time, valid):
-        t.ID = int(ID)
-        t.num = str(num)
-        t.countt = countt
-        t.used = int(used)
-        t.time = int(time)
-        t.valid = bool(valid)
-
-
-database_path = "../databases/ticketr.db"
-table_name = "ticket"
-table_headers = ["ID", "num", "used", "time", "countt", "valid"]
-
-sql_worker = Sqlite3Worker(database_path)
-
-
-def get_with_headers(alist):
-    result = {}
-    for index in range(len(alist)):
-        result[table_headers[index]] = alist[index]
-    return result
-
-
-def update(table_name, tick):
-    print("UPDATE", file=open("./python_log.txt", "a"))
-    tick.used = 1
-    tick.time = int(round(time() * 1000))
-    tick.countt += 1
-    tick.valid = 0
-    sql_worker.execute(
-        "UPDATE {} SET used={}, time={}, countt={}, valid={} WHERE num='{}'".
-        format(table_name, tick.used, tick.time, tick.countt, tick.valid,
-               tick.num))
-    return tick
-
-
-def get_all(table_name, tick):
-    result = sql_worker.execute('SELECT * FROM {}'.format(table_name))
-    results = []
-    for res in result:
-        results.append(get_with_headers(res))
-    return results
-
-
-def get_one(table_name, tick):
-    try:
-        len(tick.__dict__["num"]) > 0
-        sql_worker_internal = Sqlite3Worker(database_path)
-        result = sql_worker_internal.execute(
-            'SELECT * FROM {} WHERE num="{}"'.format(table_name, tick.num))
-        try:
-            result = get_with_headers(result[0])
-        except IndexError:
-            return {}
-        sql_worker_internal.close()
-        print(result, file=open("./python_log.txt", "a"))
-        return result
-    except AttributeError:
-        return {}
-
-
-def update_one(table_name, tick):
-    try:
-        print(tick.__dict__, file=open("./python_log.txt", "a"))
-        tick = get_ticket_attributes(table_name, tick)
-        if tick.ID == 0:
-            return {}
-        num = tick.num
-        used = sql_worker.execute('SELECT used FROM {} WHERE num="{}"'.format(
-            table_name, num))
-        if used:
-            used = (used[0][0])
-            if used == 0:
-                tick.valid = 1
-            else:
-                tick.valid = 0
-            return_tick = copy.deepcopy(tick)
-            update(table_name, tick)
+class get_cursor:
+    def __init__(self):
+        self.connection = postgre_pool.getconn()
+        if self.connection:
+            self.cursor = self.connection.cursor()
         else:
-            tick.count = -1
-        print(return_tick, file=open("./python_log.txt", "a"))
-        return return_tick.__dict__
-    except AttributeError:
-        return {}
+            self.cursor = None
+            print("Invalid connection supplied, aborting.")
+
+    def rollback(self):
+        if self.connection:
+            self.connection.rollback()
+
+    def dispose(self):
+        if self.connection and self.cursor:
+            self.cursor.close()
+            self.connection.close()
+            postgre_pool.putconn(self.connection)
+            self.connection = None
+            self.cursor = None
+
+    def commit(self):
+        if self.connection:
+            self.connection.commit()
 
 
-def get_ticket_attributes(table_name, tick):
-    result = get_one(table_name, tick)
-    if result != {}:
-        tick.ID = result["ID"]
-        tick.num = result["num"]
-        tick.countt = result["countt"]
-        tick.used = result["used"]
-        tick.time = result["time"]
-        tick.valid = result["valid"]
-    return tick
+def get_pool(pool=None):
+    global postgre_pool
+    if pool:
+        postgre_pool = pool
+    if not postgre_pool:
+        try:
+            postgre_pool = psycopg2.pool.ThreadedConnectionPool(
+                maxconn=POOL_SIZE, minconn=4, user="postgres", password="kundapanda", host="localhost", port="5432", database="tickets")
+        except (psycopg2.OperationalError, Exception) as e:
+            print(e)
+            postgre_pool = None
+        print("Postgre pool built.")
+    return postgre_pool
 
 
-def get_commands(commands):
-    tic = []
-    if len(commands) == 2:
-        tic = commands["ticket"]
-        comm = commands["command"]
-    else:
-        comm = commands["command"]
-    if len(tic) > 0:
-        tick = {
-            "ID": 0,
-            "num": "",
-            "countt": 0,
-            "used": 0,
-            "time": 0,
-            "valid": 0
-        }
-        print(tic, type(tic), file=open("./python_log.txt", "a"))
-        if (isinstance(tic, str)):
-            tic = json.loads(tic)
-        tic = tic[0]
-        print(tic, type(tic), file=open("./python_log.txt", "a"))
+def close_pool():
+    global postgre_pool
+    if postgre_pool:
+        postgre_pool.closeall()
+    print("Postgre pool closed.")
+    return 1
 
-        if (isinstance(tic, str)):
-            tic = json.loads(tic)
 
-        for key, value in tic.items():
-            tick[key] = value
-        comm = commands["command"]
-        tick = ticket(tick["ID"], tick["num"], tick["countt"], tick["used"],
-                      tick["time"], tick["valid"])
-        print(tick, file=open("./python_log.txt", "a"))
-        print(tick.__dict__, file=open("./python_log.txt", "a"))
-    else:
-        tick = tic[:]
+def check_pool():
+    if not postgre_pool:
+        print("No pool, creating a new one.")
+        while not postgre_pool:
+            get_pool()
+            time.sleep(0.1)
+    return 1
 
-    members = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
-    memdict = {}
-    for member in members:
-        memdict[member[0]] = member[1]
 
-    sql_worker = Sqlite3Worker(database_path)
-
+def select_code(code, table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    cursor_wrapper = get_cursor()
+    cursor = cursor_wrapper.cursor
+    code = str(code)
+    sql_string = "SELECT * FROM %s WHERE code = '%s'" % (table_name, code)
     try:
-        result = memdict[comm](table_name, tick)
-    except TypeError:
-        result = {}
-
-    sql_worker.close()
-
+        cursor.execute(sql_string)
+    except psycopg2.Error as e:
+        print(e)
+        return None
+    result = cursor.fetchone()
+    cursor_wrapper.dispose()
     return result
+
+
+def add_entry(code, table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    cursor_wrapper = get_cursor()
+    cursor = cursor_wrapper.cursor
+    sql_string = "INSERT INTO %s(code) VALUES('%s')" % (table_name, code)
+    try:
+        cursor.execute(sql_string)
+        cursor_wrapper.commit()
+        cursor_wrapper.dispose()
+        return 0
+    except psycopg2.Error as e:
+        print(e, "Rolling back changes.")
+        cursor_wrapper.rollback()
+        cursor_wrapper.dispose()
+        return 1
+
+
+def dump_database():
+    while (check_pool() != 1):
+        check_pool()
+    cursor_wrapper = get_cursor()
+    cursor = cursor_wrapper.cursor
+    sql_string = """SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"""
+    try:
+        cursor.execute(sql_string)
+    except psycopg2.Error as e:
+        print(e)
+        return None
+    tables = cursor.fetchall()
+    result = {}
+    for table in tables:
+        sql_string = "SELECT * FROM %s" % (table)
+        cursor.execute(sql_string)
+        result[table[0]] = cursor.fetchall()
+    cursor_wrapper.dispose()
+    return result
+
+
+def clear_table(name):
+    while (check_pool() != 1):
+        check_pool()
+    cursor_wrapper = get_cursor()
+    cursor = cursor_wrapper.cursor
+    sql_string = "DELETE FROM %s" % name
+    try:
+        cursor.execute(sql_string)
+        cursor.execute("SELECT setval('tickets_id_seq', 1)")
+        cursor_wrapper.commit()
+        cursor_wrapper.dispose()
+    except psycopg2.Error as e:
+        print(e)
+        cursor_wrapper.rollback()
+        cursor_wrapper.dispose()
+        return 1
+    print("CLEARED")
+    return 0
