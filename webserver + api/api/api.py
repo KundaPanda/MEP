@@ -1,110 +1,65 @@
-#!C:/Users/vojdo/AppData/Local/Programs/Python/Python37/python.exe
+#!/usr/bin/python3
 
-# import sys
-# import hashlib
 import db_handler as handler
 import json
 import os
-from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context
-from random import randint
-
-# from time import time
+from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory
+from random import randint, choice
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
+import string
+import error_handler
+import tempfile
+from time import sleep
+from datetime import datetime
 
 api = Flask(__name__, template_folder="templates", static_folder="static")
+api.register_blueprint(error_handler.blueprint)
 postgre_pool = None
-# auth_database_path = "../databases/auth.db"
-# sql_worker = Sqlite3Worker(auth_database_path)
+file_scheduler = None
 
 
 CODE_LENGTH = 20
+PUBLIC_PATH = os.path.abspath('public')
 
-
-@api.errorhandler(400)
-def bad_request(dump):
-    return (
-        render_template(
-            "index.html",
-            body="400 Bad request",
-            image=url_for("static", filename="400.jpg"),
-        ),
-        400,
-    )
-
-
-@api.errorhandler(401)
-def unauthorized(dump):
-    return (
-        render_template(
-            "index.html",
-            body="401 Unauthorized",
-            image=url_for("static", filename="/401.jpg"),
-        ),
-        401,
-    )
-
-
-@api.errorhandler(403)
-def forbidden(dump):
-    return (
-        render_template(
-            "index.html",
-            body="403 Forbidden",
-            image=url_for("static", filename="403.jpg"),
-        ),
-        403,
-    )
-
-
-@api.errorhandler(404)
-def not_found(dump):
-    return (
-        render_template(
-            "index.html",
-            body="404 Not found",
-            image=url_for("static", filename="404.jpg"),
-        ),
-        404,
-    )
-
-
-@api.errorhandler(405)
-def method_not_allowed(dump):
-    return (
-        render_template(
-            "index.html",
-            body="405 Method not allowed",
-            image=url_for("static", filename="405.jpg"),
-        ),
-        405,
-    )
-
-
-@api.errorhandler(417)
-def method_not_allowed(dump):
-    return (
-        render_template(
-            "index.html",
-            body="417 Expectation failed",
-            image=url_for("static", filename="417.jpg"),
-        ),
-        417,
-    )
-
-
-@api.errorhandler(500)
-def method_not_allowed(dump):
-    return (
-        render_template(
-            "index.html",
-            body="500 Internal server error",
-            image=url_for("static", filename="500.jpg"),
-        ),
-        500,
-    )
+# TODO: class structure as well?
 
 
 def get_random_code(length):
+    """
+    @in length: length of the code to be generated
+    @out int code: generated code
+    """
     return randint(int("1" + "0" * (length - 1)), int("9" * length))
+
+
+def get_random_filename():
+    """
+    @out str filename: random filename
+    """
+    return "".join(choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(randint(5, 21)))
+
+
+def delete_file(afile, filename=None):
+    try:
+        os.remove(afile)
+        if filename:
+            file_scheduler.remove_job(filename)
+        return 0
+    except Exception as e:
+        print(e)
+        return 1
+
+
+def delete_listener():
+    global file_scheduler
+    # tell all jobs to finish now
+    for job in file_scheduler.get_jobs():
+        job.modify(next_run_time=datetime.now())
+    # wait for jobs to finish, then kill scheduler
+    while file_scheduler.get_jobs() != list():
+        sleep(0.1)
+    file_scheduler.shutdown()
 
 
 def create_table(name, size, **kwargs):
@@ -113,7 +68,15 @@ def create_table(name, size, **kwargs):
     @in size: size of the table (number of rows)
     @out HTTP CODE
     """
-    return Response(status=200)
+    try:
+        size = int(size)
+    except Exception:
+        return Response(status=406)
+    result = handler.create_table(name)
+    if not result:
+        result = add_entries(name, size)
+        return result
+    return Response(status=304)
 
 
 def delete_table(name, **kwargs):
@@ -121,15 +84,41 @@ def delete_table(name, **kwargs):
     @in name: name of the table to be deleted
     @out HTTP CODE
     """
-    return Response(status=200)
+    result = handler.drop_table(name)
+    return Response(status=200) if not result else Response(status=304)
+
+
+def clear_table(name, **kwargs):
+    result = handler.clear_table(name)
+    return Response(status=200) if not result else Response(status=304)
 
 
 def backup_db(**kwargs):
     """
-    @out database table in json
+    @out link to database in gz format
     """
-    database = json.loads(json.dumps({"name": "name", "data": "data"}))
-    return jsonify(name="TEST", data=database), 200
+    global file_scheduler
+    response = handler.create_backup(False)
+    temporary_file_name = get_random_filename() + ".gz"
+    if temporary_file_name in os.walk(PUBLIC_PATH):
+        while temporary_file_name in os.walk(PUBLIC_PATH):
+            temporary_file_name = get_random_filename() + ".gz"
+
+    temporary_file_path = os.path.join(PUBLIC_PATH, temporary_file_name)
+
+    with open(temporary_file_path, "wb") as temp_file:
+        with open(os.path.join(os.path.abspath("backups"), "backup_latest.gz"), "rb") as backup_file:
+            temp_file.writelines(backup_file.readlines())
+
+    file_scheduler.add_job(delete_file, args=(temporary_file_path, temporary_file_name),
+                           id=temporary_file_name, trigger='interval', minutes=10)
+
+    if response:
+        return Response(status=500)
+    else:
+        result = get_file(temporary_file_name)
+        print(result)
+        return result
 
 
 def restore_db(data, **kwargs):
@@ -137,6 +126,7 @@ def restore_db(data, **kwargs):
     @in data: json-formatted database table
     @out HTTP CODE
     """
+    # TODO
     return Response(status=200)
 
 
@@ -170,18 +160,32 @@ def select_code(name, code, **kwargs):
     if result:
         return jsonify(result), 200
     else:
-        return jsonify(None), 200
+        return Response(status=418)
+
+
+def update_code(name, code, **kwargs):
+    result = handler.check_and_update_code()
+    if result != 1:
+        return jsonify(result), 200
+    else:
+        return Response(status=200)
 
 
 methods_ui = {
     "create_table": create_table,
     "delete_table": delete_table,
+    "clear_table": clear_table,
     "backup_db": backup_db,
     "restore_db": restore_db,
     "add_entries": add_entries,
     "select_code": select_code,
+    "update_code": update_code,
 }
 
+methods_client = {
+    "update_code": update_code,
+
+}
 
 parameter_names = {
     "create_table": ["name", "size"],
@@ -190,6 +194,7 @@ parameter_names = {
     "restore_db": ["data"],
     "add_entries": ["name", "size"],
     "select_code": ["name", "code"],
+    "update_code": ["name", "code"],
 }
 
 parameters = {"name": "", "size": "", "data": "", "code": ""}
@@ -205,7 +210,6 @@ def client(method):
     if method in methods_ui.keys():
         for parameter in parameter_names[method]:
             if parameter not in post_data:
-                print(post_data, parameter)
                 abort(400)
             parameters[parameter] = post_data[parameter]
         return (methods_ui[method](**parameters))
@@ -213,17 +217,45 @@ def client(method):
         abort(405)
 
 
-@api.route("/api/client")
-def ui():
+@api.route("/api/client/<method>", methods=["POST"])
+def ui(method):
     try:
         post_data = request.get_json()
     except Exception:
         abort(400)
 
-    return "Hello from client API!. Received: %s" % post_data
+    if method in methods_client.keys():
+        for parameter in parameter_names[method]:
+            if parameter not in post_data:
+                abort(400)
+            parameters[parameter] = post_data[parameter]
+        return (methods_client[method](**parameters))
+    else:
+        abort(405)
+
+
+@api.route("/public/<filename>")
+def get_file(filename):
+    filepath = os.path.join(PUBLIC_PATH, filename)
+    if not os.path.isfile(filepath):
+        return Response(status=404)
+    with open(filepath, "rb") as afile:
+        result = Response(afile.read())
+    result.headers["Content-Encoding"] = 'gzip'
+    result.headers["Content-Disposition"] = "attachment; filename=%s" % filename
+    result.headers["Content-type"] = "text/csv"
+    return result
 
 
 if __name__ == "__main__":
+    file_scheduler = BackgroundScheduler()
+    file_scheduler.start()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(handler.create_backup,
+                      id="backup_scheduler", trigger='interval', hours=1)
+    scheduler.start()
+    atexit.register(delete_listener)
+    atexit.register(scheduler.shutdown)
     handler.get_pool()
     # handler.clear_table("tickets")
-    api.run(debug=True, port=5000)
+    api.run(debug=True, port=5000, use_reloader=False)

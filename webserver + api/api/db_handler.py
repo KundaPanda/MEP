@@ -1,23 +1,41 @@
-#!C:/Users/vojdo/AppData/Local/Programs/Python/Python37/python.exe
+#!/usr/bin/python3
 
 import psycopg2
 import psycopg2.pool
 import time
+from sh import pg_dump
+import gzip
+import os
+from datetime import datetime
+
+# TODO: Create different classes by functionality maybe?
 
 POOL_SIZE = 200
 COLUMNS = ("id", "code", "used", "time")
+USER = "postgres"
+DB_NAME = "tickets"
+PORT = "5432"
+HOST = "localhost"
+BACKUP_NAMES = ["backup_latest.gz"]
+for i in range(1, 10):
+    i = str(i)
+    BACKUP_NAMES.append("backup" + "0" * (2 - len(i)) + i + ".gz")
+BACKUP_PATH = os.path.abspath("backups")
 
 postgre_pool = None
 
 
 class get_cursor:
     def __init__(self):
-        self.connection = postgre_pool.getconn()
-        if self.connection:
-            self.cursor = self.connection.cursor()
+        if postgre_pool:
+            self.connection = postgre_pool.getconn()
+            if self.connection:
+                self.cursor = self.connection.cursor()
+            else:
+                self.cursor = None
+                print("Invalid connection supplied, aborting.")
         else:
-            self.cursor = None
-            print("Invalid connection supplied, aborting.")
+            print("No valid pool, aborting.")
 
     def rollback(self):
         if self.connection:
@@ -43,7 +61,7 @@ def get_pool(pool=None):
     if not postgre_pool:
         try:
             postgre_pool = psycopg2.pool.ThreadedConnectionPool(
-                maxconn=POOL_SIZE, minconn=4, user="postgres", password="kundapanda", host="localhost", port="5432", database="tickets")
+                maxconn=POOL_SIZE, minconn=4, user=USER, host=HOST, port=PORT, database=DB_NAME)
         except (psycopg2.OperationalError, Exception) as e:
             print(e)
             postgre_pool = None
@@ -68,6 +86,27 @@ def check_pool():
     return 1
 
 
+def simple_sql_command(sql_string, cursor_wrapper=None):
+    if cursor_wrapper:
+        cursor = cursor_wrapper.cursor
+    else:
+        cursor_wrapper = get_cursor()
+        cursor = cursor_wrapper.cursor
+    for i in range(5):
+        try:
+            cursor.execute(sql_string)
+            cursor_wrapper.commit()
+            cursor_wrapper.dispose()
+            i = 0
+            break
+        except psycopg2.Error as e:
+            print(e)
+            cursor_wrapper.rollback()
+            cursor_wrapper.dispose()
+            time.sleep(0.1)
+    return 1 if i else 0
+
+
 def select_code(code, table_name):
     while (check_pool() != 1):
         time.sleep(0.1)
@@ -75,70 +114,105 @@ def select_code(code, table_name):
     cursor = cursor_wrapper.cursor
     code = str(code)
     sql_string = "SELECT * FROM %s WHERE code = '%s'" % (table_name, code)
-    try:
-        cursor.execute(sql_string)
-    except psycopg2.Error as e:
-        print(e)
+    for i in range(5):
+        try:
+            cursor.execute(sql_string)
+            i = 0
+            break
+        except psycopg2.Error as e:
+            print(e)
+            time.sleep(0.1)
+    if not i:
         return None
     result = cursor.fetchone()
     cursor_wrapper.dispose()
     return result
 
 
+def check_and_update_code(code, table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    current_data = select_code(code, table_name)
+    if current_data:
+        sql_string = "UPDATE %s SET used=%s, time=%s " % (
+            table_name, current_data[2] + 1, datetime.now())
+        command_result = simple_sql_command(sql_string)
+    else:
+        return 1
+    return current_data if not command_result else 1
+
+
 def add_entry(code, table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    sql_string = "INSERT INTO %s (code) VALUES('%s')" % (table_name, code)
+    command_result = simple_sql_command(sql_string)
+    return 1 if command_result else 0
+
+
+def clear_table(table_name):
     while (check_pool() != 1):
         time.sleep(0.1)
     cursor_wrapper = get_cursor()
     cursor = cursor_wrapper.cursor
-    sql_string = "INSERT INTO %s(code) VALUES('%s')" % (table_name, code)
+    sql_string = "DELETE FROM %s" % table_name
+    for i in range(5):
+        try:
+            cursor.execute(sql_string)
+            cursor.execute("SELECT setval('tickets_id_seq', 1)")
+            cursor_wrapper.commit()
+            cursor_wrapper.dispose()
+            i = 0
+            break
+        except psycopg2.Error as e:
+            print(e)
+            cursor_wrapper.rollback()
+            cursor_wrapper.dispose()
+            time.sleep(0.1)
+    return 1 if i else 0
+
+
+def drop_table(table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    sql_string = "DROP TABLE %s" % table_name
+    command_result = simple_sql_command(sql_string)
+    return command_result
+
+
+def create_table(table_name):
+    while (check_pool() != 1):
+        time.sleep(0.1)
+    sql_string = (
+        "CREATE TABLE %s (id serial PRIMARY KEY, code varchar(40), used integer, time TIMESTAMP)" % table_name)
+    command_result = simple_sql_command(sql_string)
+    return command_result
+
+
+def rename_backups(index):
+    file_path = os.path.join(BACKUP_PATH, BACKUP_NAMES[index])
+    if os.path.isfile(file_path):
+        if index == 9:
+            os.remove(file_path)
+        else:
+            rename_backups(index + 1)
+            os.rename(file_path,
+                      os.path.join(BACKUP_PATH, BACKUP_NAMES[index + 1]))
+
+
+def create_backup(scheduled=True):
+    if scheduled:
+        print("Starting scheduled database backup.")
+    else:
+        print("Starting requested database backup.")
+    rename_backups(0)
     try:
-        cursor.execute(sql_string)
-        cursor_wrapper.commit()
-        cursor_wrapper.dispose()
+        latest_file_path = os.path.join(BACKUP_PATH, "backup_latest.gz")
+        with open(latest_file_path, "wb") as f:
+            pg_dump('-h', HOST, '-U', USER, DB_NAME, _out=f)
+        print("Backup successful! @ %s" % time.strftime(
+            "%a, %d %b %Y %H:%M:%S", time.gmtime()))
         return 0
-    except psycopg2.Error as e:
-        print(e, "Rolling back changes.")
-        cursor_wrapper.rollback()
-        cursor_wrapper.dispose()
-        return 1
-
-
-def dump_database():
-    while (check_pool() != 1):
-        check_pool()
-    cursor_wrapper = get_cursor()
-    cursor = cursor_wrapper.cursor
-    sql_string = """SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"""
-    try:
-        cursor.execute(sql_string)
-    except psycopg2.Error as e:
+    except Exception as e:
         print(e)
-        return None
-    tables = cursor.fetchall()
-    result = {}
-    for table in tables:
-        sql_string = "SELECT * FROM %s" % (table)
-        cursor.execute(sql_string)
-        result[table[0]] = cursor.fetchall()
-    cursor_wrapper.dispose()
-    return result
-
-
-def clear_table(name):
-    while (check_pool() != 1):
-        check_pool()
-    cursor_wrapper = get_cursor()
-    cursor = cursor_wrapper.cursor
-    sql_string = "DELETE FROM %s" % name
-    try:
-        cursor.execute(sql_string)
-        cursor.execute("SELECT setval('tickets_id_seq', 1)")
-        cursor_wrapper.commit()
-        cursor_wrapper.dispose()
-    except psycopg2.Error as e:
-        print(e)
-        cursor_wrapper.rollback()
-        cursor_wrapper.dispose()
         return 1
-    print("CLEARED")
-    return 0
