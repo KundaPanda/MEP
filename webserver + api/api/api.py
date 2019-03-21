@@ -15,6 +15,7 @@ from time import sleep
 from datetime import datetime
 import logging
 import logging.handlers
+import auth_handler
 
 api = Flask(__name__, template_folder="templates", static_folder="static")
 api.register_blueprint(error_handler.blueprint)
@@ -22,10 +23,20 @@ api.register_blueprint(error_handler.blueprint)
 file_scheduler = None
 
 
+LOGGING_TO_FILE = False
+
+COLUMNS = ("id", "code", "used", "time")
 CODE_LENGTH = 20
 PUBLIC_PATH = os.path.abspath('public')
 
 # TODO: class structure as well?
+
+
+def create_dict_result(result):
+    dict_result = {}
+    for i in range(len(result)):
+        dict_result[COLUMNS[i]] = result[i]
+    return dict_result
 
 
 def get_random_code(length):
@@ -83,10 +94,15 @@ def create_table(name, size, **kwargs):
         size = int(size)
     except Exception:
         return Response(status=406)
-    result = handler.create_table(name)
-    if not result:
-        result = add_entries(name, size)
-        return result
+    tables = []
+    tables_tuple = handler.get_tables()
+    for table in tables_tuple:
+        tables.append(table[0])
+    if name not in tables:
+        result = handler.create_table(name)
+        if not result:
+            result = add_entries(name, size)
+            return result
     return Response(status=304)
 
 
@@ -154,24 +170,27 @@ def add_entries(name, size, **kwargs):
     @in int size: number of rows to be added
     @out HTTP CODE
     """
-    # TODO: add checking if already in db
     try:
         size = int(size)
         if size < 0:
             return Response(status=400)
+        elif size == 0:
+            return Response(status=200)
         name = str(name)
     except Exception as e:
         print(e)
         return Response(status=417)
     try:
         codes = []
+        result = 1
         cursor_wrapper = handler.get_cursor()
         while len(codes) < size:
             code = str(get_random_code(CODE_LENGTH))
-            while ((code in codes) and (not handler.select_code(code, name, cursor_wrapper, False))):
+            while ((code in codes) and (not handler.select_row("code", code, name, cursor_wrapper, False))):
                 code = str(get_random_code(CODE_LENGTH))
-            codes.append("('" + code + "')")
-        result = handler.add_entries(codes, name, cursor_wrapper, True)
+            codes.append(code)
+        if codes != []:
+            result = handler.add_entries(codes, name, cursor_wrapper, True)
         return Response(status=201) if not result else Response(status=304)
     except pool.PoolError as f:
         print(f)
@@ -189,9 +208,9 @@ def select_code(name, code, **kwargs):
     @out: json object containing the row with the code
     selects a row in a table and returns the row as a json
     """
-    result = handler.select_code(code, name)
+    result = handler.select_row("code", code, name)
     if result:
-        return jsonify(result), 200
+        return jsonify(create_dict_result(result)), 200
     else:
         return Response(status=418)
 
@@ -205,9 +224,65 @@ def update_code(name, code, **kwargs):
     """
     result = handler.check_and_update_code(code, name)
     if result != 1:
-        return jsonify(result), 200
+        return jsonify(create_dict_result(result)), 200
     else:
         return Response(status=304)
+
+
+def add_users(users, name, **kwargs):
+    """
+    @in list users: list of user ids to be added
+    @in str name: name of the table to assign these users to
+    @out: HTTP CODE
+    assigns all users from provided list to the selected table
+    """
+    result = 1
+    try:
+        users = list(users)
+    except Exception:
+        return Response(status=304) if (tables == 1) else tables
+    if isinstance(users, list):
+        result = []
+        tables = handler.get_tables()
+        for table in tables:
+            result.append(table[0])
+        if name in result:
+            result = auth_handler.add_users(users, name)
+        else:
+            result = 1
+    return Response(status=304) if (result == 1) else Response(status=200)
+
+
+def delete_all_users(**kwargs):
+    result = 1
+    try:
+        result = auth_handler.delete_all_users()
+    except Exception:
+        pass
+    return Response(status=304) if (result == 1) else Response(status=200)
+
+
+def delete_users_for_table(name, **kwargs):
+    result = 1
+    try:
+        result = auth_handler.delete_all_users_for_table(name)
+    except Exception:
+        pass
+    return Response(status=304) if (result == 1) else Response(status=200)
+
+
+def assigned_user_table(user):
+    """
+    @in str user: username to find the assigned table to
+    @out str name: name of the table the user is assigned to (1 if unassigned)
+    assigns all users from provided list to the selected table
+    """
+    result = 1
+    try:
+        result = auth_handler.find_corresponding_table(user)
+    except Exception as e:
+        print(e)
+    return result
 
 
 methods_ui = {
@@ -219,6 +294,9 @@ methods_ui = {
     "add_entries": add_entries,
     "select_code": select_code,
     "update_code": update_code,
+    "add_users": add_users,
+    "delete_all_users": delete_all_users,
+    "delete_users_for_table": delete_users_for_table,
 }
 
 methods_client = {
@@ -235,9 +313,12 @@ parameter_names = {
     "add_entries": ["name", "size"],
     "select_code": ["name", "code"],
     "update_code": ["name", "code"],
+    "add_users": ["users", "name"],
+    "delete_all_users": [],
+    "delete_users_for_table": ["name"],
 }
 
-parameters = {"name": "", "size": "", "data": "", "code": ""}
+parameters = {"name": "", "size": "", "data": "", "code": "", "users": ""}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])
@@ -249,6 +330,8 @@ def ui(method):
         post_data = request.get_json()
     except Exception:
         abort(400)
+
+    # print(post_data)
 
     if method in methods_ui.keys():
         for parameter in parameter_names[method]:
@@ -267,6 +350,9 @@ def client(method):
     """
     try:
         post_data = request.get_json()
+        post_dict = (json.loads(post_data))
+        post_dict["name"] = None
+        post_data = json.dumps(post_dict)
     except Exception:
         abort(400)
 
@@ -275,6 +361,12 @@ def client(method):
             if parameter not in post_data:
                 abort(400)
             parameters[parameter] = post_data[parameter]
+
+        user = request.authorization("username")
+        table_name = assigned_user_table(user)
+        if table_name == 1:
+            return Response(status="403")
+        parameters["name"] = table_name
         return (methods_client[method](**parameters))
     else:
         abort(405)
@@ -298,6 +390,7 @@ def get_file(filename):
 
 if __name__ == "__main__":
     # start file deletion scheduler and backup scheduler, then create a pool and start the api
+    print("----------INIT----------")
     file_scheduler = BackgroundScheduler()
     file_scheduler.start()
     backup_scheduler = BackgroundScheduler()
@@ -307,14 +400,17 @@ if __name__ == "__main__":
     atexit.register(delete_listener)
     atexit.register(backup_scheduler.shutdown)
     handler.pg_pool.get_pool()
+    auth_handler.get_pool_init()
     # handler.clear_table("tickets")
-    logging_handler = logging.handlers.RotatingFileHandler(
-        filename="api_log.log",
-        maxBytes=(1024 * 1024),
-    )
-    logging_handler.setLevel(logging.DEBUG)
-    api.logger.addHandler(logging_handler)
-    werkzeug_logger = logging.getLogger("werkzeug")
-    werkzeug_logger.setLevel(logging.DEBUG)
-    werkzeug_logger.addHandler(logging_handler)
+    if LOGGING_TO_FILE:
+        logging_handler = logging.handlers.RotatingFileHandler(
+            filename="api_log.log",
+            maxBytes=(1024 * 1024),
+        )
+        logging_handler.setLevel(logging.DEBUG)
+        api.logger.addHandler(logging_handler)
+        werkzeug_logger = logging.getLogger("werkzeug")
+        werkzeug_logger.setLevel(logging.DEBUG)
+        werkzeug_logger.addHandler(logging_handler)
+    print("----------INIT----------")
     api.run(debug=True, port=5000, use_reloader=False)
