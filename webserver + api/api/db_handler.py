@@ -10,7 +10,7 @@ from datetime import datetime
 
 # TODO: Create different classes by functionality maybe?
 
-POOL_SIZE = 200
+POOL_SIZE = 100
 COLUMNS = ("id", "code", "used", "time")
 USER = "postgres"
 DB_NAME = "tickets"
@@ -124,34 +124,32 @@ class get_cursor:
 
     def rollback(self):
         """
-        rollback all changes made on this cursor's connection
+        rollback all changes made on this cursor's connection and close the connection
         """
         if self.connection:
             self.connection.rollback()
-
-    def dispose(self):
-        """
-        safely closes the cursor and its connection to the pool
-        """
-        if self.connection and self.cursor:
-            self.cursor.close()
             self.connection.close()
-            self.master_pool.pool.putconn(self.connection)
-            self.connection = None
-            self.cursor = None
+        if self.cursor:
+            self.cursor.close()
+        self.master_pool.pool.putconn(self.connection)
 
     def commit(self):
         """"
-        commits all changes done to the database
+        commits all changes done to the database and closes the connection
         """
         if self.connection:
             self.connection.commit()
+            self.connection.close()
+        if self.cursor:
+            self.cursor.close()
+        self.master_pool.pool.putconn(self.connection)
 
 
-def simple_sql_command(sql_string, cursor_wrapper=None):
+def simple_sql_command(sql_string, cursor_wrapper=None, dispose=True):
     """
     @in str sql_string: sql_string to be executed
     @in get_cursor (optional) cursor_wrapper: get_cursor class (will create a new one if none is provided)
+    @in (optional) bool dispose: whether to dispose the cursor_wrapper after execution
     @out: 0 if success else 1
     sends a single sql command to the database
     """
@@ -167,29 +165,32 @@ def simple_sql_command(sql_string, cursor_wrapper=None):
     for i in range(5):
         try:
             cursor.execute(sql_string)
-            cursor_wrapper.commit()
-            cursor_wrapper.dispose()
+            if dispose:
+                cursor_wrapper.commit()
             i = 0
             break
         except psycopg2.Error as e:
             print(e)
-            cursor_wrapper.rollback()
-            cursor_wrapper.dispose()
+            if dispose:
+                cursor_wrapper.rollback()
             time.sleep(0.1)
     return 1 if i else 0
 
 
-def select_code(code, table_name):
+def select_code(code, table_name, cursor_wrapper=None, dispose=True):
     """
     @in str/int code: code to search for in the database
     @in str table_name: table to search in
+    @in (optional) get_cursor cursor_wrapper: cursor wrapper to be executed with (for multiple actions with a single cursor)
+    @in (optional) bool dispose: whether to dispose the cursor_wrapper after execution
     @out: 1 if entry not found or some error occured else tuple containing the whole row with the specified code
     checks for a code in a table
     """
     global pg_pool
     while (pg_pool.check_pool() != 0):
         time.sleep(0.1)
-    cursor_wrapper = get_cursor()
+    if not cursor_wrapper:
+        cursor_wrapper = get_cursor()
     cursor = cursor_wrapper.cursor
     code = str(code)
     sql_string = "SELECT * FROM %s WHERE code = '%s'" % (table_name, code)
@@ -205,7 +206,8 @@ def select_code(code, table_name):
     if i:
         return 1
     result = cursor.fetchone()
-    cursor_wrapper.dispose()
+    if dispose:
+        cursor_wrapper.commit()
     if not result:
         result = 1
     return result
@@ -236,10 +238,12 @@ def check_and_update_code(code, table_name):
     return current_data if not command_result else 1
 
 
-def add_entries(codes, table_name):
+def add_entries(codes, table_name, cursor_wrapper=None, dispose=True):
     """
     @in array codes: array of codes to insert into the table (even for one, it must be an array)
     @in str table_name: name of the table to be added into
+    @in (optional) get_cursor cursor_wrapper: cursor wrapper to be executed with (for multiple actions with a single cursor)
+    @in (optional) bool dispose: whether to dispose the cursor_wrapper after execution
     @out: 0 if success else 1
     adds 1 or more entries to a table in the database
     """
@@ -247,7 +251,7 @@ def add_entries(codes, table_name):
     for i in range(len(codes)):
         codes_string += (codes[i] + ", " * (i != len(codes) - 1))
     sql_string = "INSERT INTO %s (code) VALUES %s" % (table_name, codes_string)
-    command_result = simple_sql_command(sql_string)
+    command_result = simple_sql_command(sql_string, cursor_wrapper, dispose)
     return 1 if command_result else 0
 
 
@@ -269,13 +273,11 @@ def clear_table(table_name):
             sql_string = "SELECT setval('%s_id_seq', 1)" % table_name
             cursor.execute(sql_string)
             cursor_wrapper.commit()
-            cursor_wrapper.dispose()
             i = 0
             break
         except psycopg2.Error as e:
             print(e)
             cursor_wrapper.rollback()
-            cursor_wrapper.dispose()
             time.sleep(0.1)
     return 1 if i else 0
 
@@ -299,7 +301,6 @@ def create_table(table_name):
     """
     sql_string = (
         "CREATE TABLE %s (id serial PRIMARY KEY, code varchar(40) UNIQUE, used integer, time TIMESTAMP)" % table_name)
-    print(sql_string)
     command_result = simple_sql_command(sql_string)
     return command_result
 

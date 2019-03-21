@@ -13,6 +13,8 @@ import tempfile
 from psycopg2 import pool
 from time import sleep
 from datetime import datetime
+import logging
+import logging.handlers
 
 api = Flask(__name__, template_folder="templates", static_folder="static")
 api.register_blueprint(error_handler.blueprint)
@@ -133,7 +135,6 @@ def backup_db(**kwargs):
         return Response(status=500)
     else:
         result = get_file(temporary_file_name)
-        print(result)
         return result
 
 
@@ -144,7 +145,7 @@ def restore_db(filepath, **kwargs):
     restores the database from the provided gz backup
     """
     # TODO
-    return Response(status=200)
+    return Response(status=201)
 
 
 def add_entries(name, size, **kwargs):
@@ -164,15 +165,17 @@ def add_entries(name, size, **kwargs):
         return Response(status=417)
     try:
         codes = []
+        cursor_wrapper = handler.get_cursor()
         while len(codes) < size:
-            code = "('" + str(get_random_code(CODE_LENGTH)) + "')"
-            if code not in codes:
-                codes.append(code)
-        result = handler.add_entries(codes, name)
-        return Response(status=200) if not result else Response(status=304)
+            code = str(get_random_code(CODE_LENGTH))
+            while ((code in codes) and (not handler.select_code(code, name, cursor_wrapper, False))):
+                code = str(get_random_code(CODE_LENGTH))
+            codes.append("('" + code + "')")
+        result = handler.add_entries(codes, name, cursor_wrapper, True)
+        return Response(status=201) if not result else Response(status=304)
     except pool.PoolError as f:
         print(f)
-        handler.pg_pool.close_pool()
+        # handler.pg_pool.close_pool()
         return Response(status=500)
     except Exception as e:
         print(e)
@@ -297,12 +300,21 @@ if __name__ == "__main__":
     # start file deletion scheduler and backup scheduler, then create a pool and start the api
     file_scheduler = BackgroundScheduler()
     file_scheduler.start()
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(handler.create_backup,
-                      id="backup_scheduler", trigger='interval', hours=1)
-    scheduler.start()
+    backup_scheduler = BackgroundScheduler()
+    backup_scheduler.add_job(handler.create_backup,
+                             id="backup_scheduler", trigger='interval', hours=1)
+    backup_scheduler.start()
     atexit.register(delete_listener)
-    atexit.register(scheduler.shutdown)
+    atexit.register(backup_scheduler.shutdown)
     handler.pg_pool.get_pool()
     # handler.clear_table("tickets")
+    logging_handler = logging.handlers.RotatingFileHandler(
+        filename="api_log.log",
+        maxBytes=(1024 * 1024),
+    )
+    logging_handler.setLevel(logging.DEBUG)
+    api.logger.addHandler(logging_handler)
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_logger.setLevel(logging.DEBUG)
+    werkzeug_logger.addHandler(logging_handler)
     api.run(debug=True, port=5000, use_reloader=False)
