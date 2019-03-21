@@ -16,7 +16,7 @@ from datetime import datetime
 
 api = Flask(__name__, template_folder="templates", static_folder="static")
 api.register_blueprint(error_handler.blueprint)
-postgre_pool = None
+# pg_pool = handler.postgre_pool()
 file_scheduler = None
 
 
@@ -28,7 +28,7 @@ PUBLIC_PATH = os.path.abspath('public')
 
 def get_random_code(length):
     """
-    @in length: length of the code to be generated
+    @in int length: length of the code to be generated
     @out int code: generated code
     """
     return randint(int("1" + "0" * (length - 1)), int("9" * length))
@@ -42,6 +42,10 @@ def get_random_filename():
 
 
 def delete_file(afile, filename=None):
+    """
+    @in str afile: absolute path to the file to be deleted
+    @in (optional) str filename: job_id (=filename) of the job to be removed (job calls this function upon execution to make sure it gets deleted after one successful removal)
+    """
     try:
         os.remove(afile)
         if filename:
@@ -53,6 +57,10 @@ def delete_file(afile, filename=None):
 
 
 def delete_listener():
+    """
+    function to be called upon exit to close all the open file_scheduler jobs and shut it down
+    do NOT call while running
+    """
     global file_scheduler
     # tell all jobs to finish now
     for job in file_scheduler.get_jobs():
@@ -65,8 +73,8 @@ def delete_listener():
 
 def create_table(name, size, **kwargs):
     """
-    @in name: name of the table to be created
-    @in size: size of the table (number of rows)
+    @in str name: name of the table to be created
+    @in int size: size of the table (number of rows)
     @out HTTP CODE
     """
     try:
@@ -82,14 +90,20 @@ def create_table(name, size, **kwargs):
 
 def delete_table(name, **kwargs):
     """
-    @in name: name of the table to be deleted
+    @in str name: name of the table to be deleted
     @out HTTP CODE
+    deletes a table in the database
     """
     result = handler.drop_table(name)
     return Response(status=200) if not result else Response(status=304)
 
 
 def clear_table(name, **kwargs):
+    """
+    @in str name: name of the table to be deleted
+    @out HTTP CODE
+    clears and resets a table in the database
+    """
     result = handler.clear_table(name)
     return Response(status=200) if not result else Response(status=304)
 
@@ -97,6 +111,7 @@ def clear_table(name, **kwargs):
 def backup_db(**kwargs):
     """
     @out link to database in gz format
+    backs up the database and returns dl link for the user (after 10 minuets, temp file will be deleted)
     """
     global file_scheduler
     response = handler.create_backup(False)
@@ -122,10 +137,11 @@ def backup_db(**kwargs):
         return result
 
 
-def restore_db(data, **kwargs):
+def restore_db(filepath, **kwargs):
     """
-    @in data: json-formatted database table
+    @in str filepath: gz backup file path
     @out HTTP CODE
+    restores the database from the provided gz backup
     """
     # TODO
     return Response(status=200)
@@ -133,8 +149,8 @@ def restore_db(data, **kwargs):
 
 def add_entries(name, size, **kwargs):
     """
-    @in name: name of the table to be inserted into
-    @in size: number of rows to be added
+    @in str name: name of the table to be inserted into
+    @in int size: number of rows to be added
     @out HTTP CODE
     """
     # TODO: add checking if already in db
@@ -156,7 +172,7 @@ def add_entries(name, size, **kwargs):
         return Response(status=200) if not result else Response(status=304)
     except pool.PoolError as f:
         print(f)
-        handler.free_pool()
+        handler.pg_pool.close_pool()
         return Response(status=500)
     except Exception as e:
         print(e)
@@ -164,6 +180,12 @@ def add_entries(name, size, **kwargs):
 
 
 def select_code(name, code, **kwargs):
+    """
+    @in str name: name of the table to be searched
+    @in str code: code to be searched for
+    @out: json object containing the row with the code
+    selects a row in a table and returns the row as a json
+    """
     result = handler.select_code(code, name)
     if result:
         return jsonify(result), 200
@@ -172,6 +194,12 @@ def select_code(name, code, **kwargs):
 
 
 def update_code(name, code, **kwargs):
+    """
+    @in str name: name of the table to be modified
+    @in str code: code to be updated (upon being scanned)
+    @out: HTTP CODE
+    updates a row with the provided code in the selected table
+    """
     result = handler.check_and_update_code(code, name)
     if result != 1:
         return jsonify(result), 200
@@ -210,7 +238,10 @@ parameters = {"name": "", "size": "", "data": "", "code": ""}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])
-def client(method):
+def ui(method):
+    """
+    route for all ui (web interface) calls
+    """
     try:
         post_data = request.get_json()
     except Exception:
@@ -227,7 +258,10 @@ def client(method):
 
 
 @api.route("/api/client/<method>", methods=["POST"])
-def ui(method):
+def client(method):
+    """
+    route for all client calls
+    """
     try:
         post_data = request.get_json()
     except Exception:
@@ -245,6 +279,9 @@ def ui(method):
 
 @api.route("/public/<filename>")
 def get_file(filename):
+    """
+    route for file download (public folder)
+    """
     filepath = os.path.join(PUBLIC_PATH, filename)
     if not os.path.isfile(filepath):
         return Response(status=404)
@@ -257,6 +294,7 @@ def get_file(filename):
 
 
 if __name__ == "__main__":
+    # start file deletion scheduler and backup scheduler, then create a pool and start the api
     file_scheduler = BackgroundScheduler()
     file_scheduler.start()
     scheduler = BackgroundScheduler()
@@ -265,6 +303,6 @@ if __name__ == "__main__":
     scheduler.start()
     atexit.register(delete_listener)
     atexit.register(scheduler.shutdown)
-    handler.get_pool()
+    handler.pg_pool.get_pool()
     # handler.clear_table("tickets")
     api.run(debug=True, port=5000, use_reloader=False)
