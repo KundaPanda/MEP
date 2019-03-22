@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import db_handler as handler
 import json
@@ -17,48 +18,59 @@ import logging
 import logging.handlers
 import auth_handler
 
+# initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
 api.register_blueprint(error_handler.blueprint)
-# pg_pool = handler.postgre_pool()
 file_scheduler = None
 
 
 LOGGING_TO_FILE = False
 
+# columns - (primary id key, code itself, number of times userd, time used)
 COLUMNS = ("id", "code", "used", "time")
+# pre-defined code length for uniformity
 CODE_LENGTH = 20
 PUBLIC_PATH = os.path.abspath('public')
 
 # TODO: class structure as well?
 
 
-def create_dict_result(result):
-    dict_result = {}
-    for i in range(len(result)):
-        dict_result[COLUMNS[i]] = result[i]
-    return dict_result
-
-
 def get_random_code(length):
+    """generates a radnom int code with the predefined length
+
+    Arguments:
+        length {[integer]} -- [desired code length]
+
+    Returns:
+        [integer] -- [generated code]
     """
-    @in int length: length of the code to be generated
-    @out int code: generated code
-    """
+
     return randint(int("1" + "0" * (length - 1)), int("9" * length))
 
 
 def get_random_filename():
+    """creates a random filename from all letters and numbers
+
+    Returns:
+        [string] -- [generated filename]
     """
-    @out str filename: random filename
-    """
+
     return "".join(choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(randint(5, 21)))
 
 
 def delete_file(afile, filename=None):
+    """deletes a file and its job (if id is provided)
+
+    Arguments:
+        afile {[string]} -- [absolute path to the file to be deleted]
+
+    Keyword Arguments:
+        filename {[string]} -- [job_id (=filename) of the job to be removed (job calls this function upon execution to make sure it gets deleted after one successful removal)] (default: {None})
+
+    Returns:
+        [boolean] -- [False if successful else True]
     """
-    @in str afile: absolute path to the file to be deleted
-    @in (optional) str filename: job_id (=filename) of the job to be removed (job calls this function upon execution to make sure it gets deleted after one successful removal)
-    """
+
     try:
         os.remove(afile)
         if filename:
@@ -69,191 +81,255 @@ def delete_file(afile, filename=None):
         return 1
 
 
-def delete_listener():
+def delete_listener(ascheduler):
     """
     function to be called upon exit to close all the open file_scheduler jobs and shut it down
     do NOT call while running
     """
-    global file_scheduler
     # tell all jobs to finish now
-    for job in file_scheduler.get_jobs():
+    for job in ascheduler.get_jobs():
         job.modify(next_run_time=datetime.now())
     # wait for jobs to finish, then kill scheduler
-    while file_scheduler.get_jobs() != list():
+    while ascheduler.get_jobs() != list():
         sleep(0.1)
-    file_scheduler.shutdown()
+    ascheduler.shutdown()
 
 
-def create_table(name, size, **kwargs):
+def create_table(table_name, size=0, **kwargs):
+    """creates a table
+
+    Arguments:
+        table_name {[string]} -- [name of the table to be created]
+        size {[string / integer]} -- [size of the table (number of rows)]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in str name: name of the table to be created
-    @in int size: size of the table (number of rows)
-    @out HTTP CODE
-    """
+
+    # check if name and size are valid
     try:
         size = int(size)
     except Exception:
         return Response(status=406)
-    tables = []
-    tables_tuple = handler.get_tables()
-    for table in tables_tuple:
-        tables.append(table[0])
-    if name not in tables:
-        result = handler.create_table(name)
-        if not result:
-            result = add_entries(name, size)
-            return result
+    if table_name and size:
+        # get all table names of the database and check if the table is already in the database
+        tables = []
+        tables_tuple = handler.get_tables()
+        for table in tables_tuple:
+            tables.append(table[0])
+        # if not in database, add it
+        if table_name not in tables:
+            result = handler.create_table(table_name)
+            if not result:
+                if size > 0:
+                    result = add_entries(table_name, size)
+                return result
     return Response(status=304)
 
 
-def delete_table(name, **kwargs):
+def delete_table(table_name, **kwargs):
+    """deletes a table
+
+    Arguments:
+        table_name {[string]} -- [name of the table to be deleted]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in str name: name of the table to be deleted
-    @out HTTP CODE
-    deletes a table in the database
-    """
-    result = handler.drop_table(name)
+    result = handler.drop_table(table_name)
     return Response(status=200) if not result else Response(status=304)
 
 
-def clear_table(name, **kwargs):
+def clear_table(table_name, **kwargs):
+    """resets a table
+
+    Arguments:
+        table_name {[string]} -- [name of the table to be cleared]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in str name: name of the table to be deleted
-    @out HTTP CODE
-    clears and resets a table in the database
-    """
-    result = handler.clear_table(name)
+    result = handler.clear_table(table_name)
     return Response(status=200) if not result else Response(status=304)
 
 
 def backup_db(**kwargs):
+    """backs up the database and returns dl link for the user (after 10 minuets, temp file will be deleted)
+
+    Returns:
+        [Response (+ string)] -- [HTTP response code + relative path to the backup file if successful]
     """
-    @out link to database in gz format
-    backs up the database and returns dl link for the user (after 10 minuets, temp file will be deleted)
-    """
+
     global file_scheduler
+    # create a backup and a random file
     response = handler.create_backup(False)
     temporary_file_name = get_random_filename() + ".gz"
     if temporary_file_name in os.walk(PUBLIC_PATH):
         while temporary_file_name in os.walk(PUBLIC_PATH):
             temporary_file_name = get_random_filename() + ".gz"
 
+    # move the random file to the public folder
     temporary_file_path = os.path.join(PUBLIC_PATH, temporary_file_name)
 
+    # copy all the data from the backup to the new file
     with open(temporary_file_path, "wb") as temp_file:
-        with open(os.path.join(os.path.abspath("backups"), "backup_latest.gz"), "rb") as backup_file:
+        with open(os.path.join(os.path.abspath("backups"), "backup_latest_%s.gz" % handler.DB_NAME), "rb") as backup_file:
             temp_file.writelines(backup_file.readlines())
 
+    # add a job to the file scheduler to delete the file after 10 minutes
     file_scheduler.add_job(delete_file, args=(temporary_file_path, temporary_file_name),
                            id=temporary_file_name, trigger='interval', minutes=10)
 
     if response:
         return Response(status=500)
     else:
-        result = get_file(temporary_file_name)
-        return result
+        # return a download link to the file
+        return jsonify(os.path.relpath(temporary_file_path)), 200
 
 
 def restore_db(filepath, **kwargs):
+    # TODO documentation after implementation
+    """restores the database from the provided gz backup
+
+    Arguments:
+        filepath {[string]} -- [path to the backup file]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in str filepath: gz backup file path
-    @out HTTP CODE
-    restores the database from the provided gz backup
-    """
-    # TODO
+
+    # TODO implementation
     return Response(status=201)
 
 
-def add_entries(name, size, **kwargs):
+def add_entries(table_name, size, **kwargs):
+    """adds one or more entries to a table
+
+    Arguments:
+        table_name {[string]} -- [name of the table to be inserted into]
+        size {[string / integer]} -- [number of rows to be added]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in str name: name of the table to be inserted into
-    @in int size: number of rows to be added
-    @out HTTP CODE
-    """
+
+    # check if table_name and size valid
     try:
         size = int(size)
         if size < 0:
             return Response(status=400)
         elif size == 0:
             return Response(status=200)
-        name = str(name)
+        table_name = str(table_name)
     except Exception as e:
         print(e)
         return Response(status=417)
-    try:
-        codes = []
-        result = 1
-        cursor_wrapper = handler.get_cursor()
-        while len(codes) < size:
-            code = str(get_random_code(CODE_LENGTH))
-            while ((code in codes) and (not handler.select_row("code", code, name, cursor_wrapper, False))):
+    if table_name and size:
+        try:
+            # create a list of unique codes (check if they are in the table already)
+            codes = []
+            result = 1
+            cursor_wrapper = handler.get_cursor()
+            while len(codes) < size:
                 code = str(get_random_code(CODE_LENGTH))
-            codes.append(code)
-        if codes != []:
-            result = handler.add_entries(codes, name, cursor_wrapper, True)
-        return Response(status=201) if not result else Response(status=304)
-    except pool.PoolError as f:
-        print(f)
-        # handler.pg_pool.close_pool()
-        return Response(status=500)
-    except Exception as e:
-        print(e)
-        return Response(status=500)
+                # create a new code if the old one is in the table already
+                while ((code in codes) and (not handler.select_row(handler.COLUMNS[1], code, table_name, cursor_wrapper, False))):
+                    code = str(get_random_code(CODE_LENGTH))
+                codes.append(code)
+            if codes != []:
+                # insert codes into the table
+                result = handler.add_entries(
+                    codes, table_name, cursor_wrapper, True)
+            return Response(status=201) if not result else Response(status=304)
+        except pool.PoolError as f:
+            print(f)
+            return Response(status=500)
+        except Exception as e:
+            print(e)
+            return Response(status=304)
+    return Response(status=400)
 
 
-def select_code(name, code, **kwargs):
+def select_code(table_name, code, **kwargs):
+    """selects a row in a table and returns the row as a json
+
+    Arguments:
+        code {[string]} -- [code to look for]
+        table_name {[string]} -- [name of the table to be searched]
+
+    Returns:
+        [json OR Response] -- [json with row containing the code and HTTP response code OR HTTP response code]
     """
-    @in str name: name of the table to be searched
-    @in str code: code to be searched for
-    @out: json object containing the row with the code
-    selects a row in a table and returns the row as a json
-    """
-    result = handler.select_row("code", code, name)
+
+    if not table_name or not code:
+        return Response(status=400)
+    result = handler.select_row("code", code, table_name)
     if result:
-        return jsonify(create_dict_result(result)), 200
+        return jsonify(result), 200
     else:
         return Response(status=418)
 
 
-def update_code(name, code, **kwargs):
+def update_code(table_name, code, **kwargs):
+    """updates a row with the provided code in the selected table
+
+    Arguments:
+        code {[string]} -- [code to update]
+        table_name {[string]} -- [name of the table to be searched]
+
+    Returns:
+        [json OR Response] -- [json with row containing the code before modifiaction and HTTP response code OR HTTP response code]
     """
-    @in str name: name of the table to be modified
-    @in str code: code to be updated (upon being scanned)
-    @out: HTTP CODE
-    updates a row with the provided code in the selected table
-    """
-    result = handler.check_and_update_code(code, name)
+
+    if not table_name or not code:
+        return Response(status=400)
+    result = handler.check_and_update_code(code, table_name)
     if result != 1:
-        return jsonify(create_dict_result(result)), 200
+        return jsonify(result), 200
     else:
         return Response(status=304)
 
 
-def add_users(users, name, **kwargs):
+def add_users(table_name, users, **kwargs):
+    """assigns all users from provided list to the selected table (adds them to users database)
+
+    Arguments:
+        users {[list]} -- [list of users to add to users database]
+        table_name {[string]} -- [name of the table to assign these users to]
+
+    Returns:
+        [Response] -- [HTTP response code]
     """
-    @in list users: list of user ids to be added
-    @in str name: name of the table to assign these users to
-    @out: HTTP CODE
-    assigns all users from provided list to the selected table
-    """
+
     result = 1
     try:
         users = list(users)
     except Exception:
-        return Response(status=304) if (tables == 1) else tables
-    if isinstance(users, list):
+        return Response(status=400)
+    # check if users and table_name exist
+    if isinstance(users, list) and table_name:
         result = []
         tables = handler.get_tables()
+        # check if the specified table exists
         for table in tables:
             result.append(table[0])
-        if name in result:
-            result = auth_handler.add_users(users, name)
+        if table_name in result:
+            # if yes, then add users assigned to this table
+            result = auth_handler.add_users(users, table_name)
+            if result == 1:
+                return Response(status=304)
         else:
             result = 1
-    return Response(status=304) if (result == 1) else Response(status=200)
+    return Response(status=400) if (result == 1) else Response(status=200)
 
 
 def delete_all_users(**kwargs):
+    """deletes all users no matter the table they are assigned to
+
+    Returns:
+        [Response] -- [HTTP response code]
+    """
+
     result = 1
     try:
         result = auth_handler.delete_all_users()
@@ -262,21 +338,34 @@ def delete_all_users(**kwargs):
     return Response(status=304) if (result == 1) else Response(status=200)
 
 
-def delete_users_for_table(name, **kwargs):
+def delete_users_for_table(table_name, **kwargs):
+    """deletes all users assigned to a specific table
+
+    Arguments:
+        table_name {[string]} -- [name of the table which users to delete]
+
+    Returns:
+        [Response] -- [HTTP response code]
+    """
+
     result = 1
     try:
-        result = auth_handler.delete_all_users_for_table(name)
+        result = auth_handler.delete_all_users_for_table(table_name)
     except Exception:
         pass
     return Response(status=304) if (result == 1) else Response(status=200)
 
 
 def assigned_user_table(user):
+    """finds the table that the user is assigned to
+
+    Arguments:
+        user {[string]} -- [username for which to find the assigned table]
+
+    Returns:
+        [string OR boolean] -- [name of the table the user is assigned to OR True if unassigned (or other error)]
     """
-    @in str user: username to find the assigned table to
-    @out str name: name of the table the user is assigned to (1 if unassigned)
-    assigns all users from provided list to the selected table
-    """
+
     result = 1
     try:
         result = auth_handler.find_corresponding_table(user)
@@ -285,6 +374,7 @@ def assigned_user_table(user):
     return result
 
 
+# methods that can be called from /api/ui/<method>
 methods_ui = {
     "create_table": create_table,
     "delete_table": delete_table,
@@ -297,42 +387,54 @@ methods_ui = {
     "add_users": add_users,
     "delete_all_users": delete_all_users,
     "delete_users_for_table": delete_users_for_table,
+    "assigned_user_table": assigned_user_table,
 }
 
+# methods that can be called from /api/client/<method>
 methods_client = {
     "update_code": update_code,
 
 }
 
+# parameters required by each method
+# TODO Maybe pass whole parameters dictionary and get the desired values from there?
 parameter_names = {
-    "create_table": ["name", "size"],
-    "delete_table": ["name"],
-    "clear_table": ["name"],
+    "create_table": ["table_name", "size"],
+    "delete_table": ["table_name"],
+    "clear_table": ["table_name"],
     "backup_db": [],
     "restore_db": ["data"],
-    "add_entries": ["name", "size"],
-    "select_code": ["name", "code"],
-    "update_code": ["name", "code"],
-    "add_users": ["users", "name"],
+    "add_entries": ["table_name", "size"],
+    "select_code": ["table_name", "code"],
+    "update_code": ["table_name", "code"],
+    "add_users": ["users", "table_name"],
     "delete_all_users": [],
-    "delete_users_for_table": ["name"],
+    "delete_users_for_table": ["table_name"],
+    "assigned_user_table": ["user"],
 }
 
-parameters = {"name": "", "size": "", "data": "", "code": "", "users": ""}
+parameters = {"table_name": "", "size": "", "data": "",
+              "code": "", "users": "", "user": ""}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])
 def ui(method):
+    """route for all ui (web interface) calls
+
+    Arguments:
+        method {[string]} -- [which method should be called]
+
+    Returns:
+        [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
-    route for all ui (web interface) calls
-    """
+
+    # read json post body
     try:
         post_data = request.get_json()
     except Exception:
         abort(400)
 
-    # print(post_data)
-
+    # check if all required fields are filled and call the function
     if method in methods_ui.keys():
         for parameter in parameter_names[method]:
             if parameter not in post_data:
@@ -345,28 +447,36 @@ def ui(method):
 
 @api.route("/api/client/<method>", methods=["POST"])
 def client(method):
+    """route for all client (mobile app) calls
+
+    Arguments:
+        method {[string]} -- [which method should be called]
+
+    Returns:
+        [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
-    route for all client calls
-    """
+    # rear input json and initialize table_name for the user
     try:
         post_data = request.get_json()
         post_dict = (json.loads(post_data))
-        post_dict["name"] = None
+        post_dict["table_name"] = None
         post_data = json.dumps(post_dict)
     except Exception:
         abort(400)
 
+    # check if all required fields are filled
     if method in methods_client.keys():
         for parameter in parameter_names[method]:
             if parameter not in post_data:
                 abort(400)
             parameters[parameter] = post_data[parameter]
 
+        # find the assigned table, abort if no assignment is found else call the method
         user = request.authorization("username")
         table_name = assigned_user_table(user)
         if table_name == 1:
             return Response(status="403")
-        parameters["name"] = table_name
+        parameters["table_name"] = table_name
         return (methods_client[method](**parameters))
     else:
         abort(405)
@@ -374,9 +484,16 @@ def client(method):
 
 @api.route("/public/<filename>")
 def get_file(filename):
+    """route for file download (public folder)
+
+    Arguments:
+        filename {[string]} -- [name of the file to download, must include extension]
+
+    Returns:
+        [Response OR Attachment] -- [HTTP response code OR attachment containing the file]
     """
-    route for file download (public folder)
-    """
+
+    # return file as an attachement if exists
     filepath = os.path.join(PUBLIC_PATH, filename)
     if not os.path.isfile(filepath):
         return Response(status=404)
@@ -393,15 +510,30 @@ if __name__ == "__main__":
     print("----------INIT----------")
     file_scheduler = BackgroundScheduler()
     file_scheduler.start()
-    backup_scheduler = BackgroundScheduler()
-    backup_scheduler.add_job(handler.create_backup,
-                             id="backup_scheduler", trigger='interval', hours=1)
-    backup_scheduler.start()
-    atexit.register(delete_listener)
-    atexit.register(backup_scheduler.shutdown)
+    print("Started file scheduler.")
+
+    tickets_backup_scheduler = BackgroundScheduler()
+    tickets_backup_scheduler.add_job(handler.create_backup, args=[True, handler.DB_NAME],
+                                     id="tickets_backup_scheduler", trigger='interval', hours=1)
+    tickets_backup_scheduler.start()
+    print("Started tickets backup scheduler.")
+
+    users_backup_scheduler = BackgroundScheduler()
+    users_backup_scheduler.add_job(handler.create_backup, args=[True, auth_handler.DB_NAME],
+                                   id="users_backup_scheduler", trigger='interval', hours=1)
+    users_backup_scheduler.start()
+    print("Started users backup scheduler.")
+
+    # at exit, finish all schedulers
+    atexit.register(delete_listener, file_scheduler)
+    atexit.register(tickets_backup_scheduler.shutdown)
+    atexit.register(users_backup_scheduler.shutdown)
+
+    # create pools for both handlers
     handler.pg_pool.get_pool()
     auth_handler.get_pool_init()
-    # handler.clear_table("tickets")
+
+    # if logging is true, log everything to api_log.log
     if LOGGING_TO_FILE:
         logging_handler = logging.handlers.RotatingFileHandler(
             filename="api_log.log",
@@ -413,4 +545,6 @@ if __name__ == "__main__":
         werkzeug_logger.setLevel(logging.DEBUG)
         werkzeug_logger.addHandler(logging_handler)
     print("----------INIT----------")
+
+    # start the server
     api.run(debug=True, port=5000, use_reloader=False)

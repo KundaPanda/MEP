@@ -1,0 +1,549 @@
+{
+	"info": {
+		"_postman_id": "b29f339f-f9da-4371-bbd7-34f90fe6d561",
+		"name": "API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "select code",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "501044b1-bd35-4ff7-9022-57160d8e43d4",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"test\", \"code\": \"77531895392098436051\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/select_code",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"select_code"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update code",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "cbc7ce76-a31e-4686-942f-58a963a684d8",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"test\", \"code\": \"77531895392098436051\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/update_code",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"update_code"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add users",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e93390e2-97b8-41e1-af9c-eecd3ef3bb31",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tickets\", \"users\": [\"asd\", \"dsa\"]}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/add_users",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"add_users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add users dupe",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e93390e2-97b8-41e1-af9c-eecd3ef3bb31",
+						"exec": [
+							"pm.test(\"Status code is 304\", function () {",
+							"    pm.response.to.have.status(304);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tickets\", \"users\": [\"asd\", \"dsa\"]}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/add_users",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"add_users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "clear users for table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7ae7bca1-fb02-48b7-b369-18dfe21f7c1b",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tickets\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/delete_users_for_table",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"delete_users_for_table"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "clear users",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "374b4094-2fa2-4764-9cc7-ed9d47fe1b0c",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/delete_all_users",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"delete_all_users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "backup db",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d887559d-a88e-423b-9d37-673654b58509",
+						"exec": [
+							"pm.test(\"Body matches string\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"public/\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tickets\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/backup_db",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"backup_db"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "fbe322e0-980c-4136-9fc1-9d844f51ce5d",
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201)",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tesing\", \"size\": 100}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/create_table",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"create_table"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "clear table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3f98abe1-a795-4385-aaa0-bf8c16b5bf5e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tesing\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/clear_table",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"clear_table"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3f98abe1-a795-4385-aaa0-bf8c16b5bf5e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"tesing\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/clear_table",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"clear_table"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create test with 10",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c65d5aef-3744-4846-9853-6b419c8b8565",
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\": \"test\", \"size\": \"10\"}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/create_table",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"create_table"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add 50",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "dc3cb281-3df7-411c-bca5-5f539f391c49",
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"table_name\": \"test\", \"size\": 50}"
+				},
+				"url": {
+					"raw": "localhost:5000/api/ui/add_entries",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"ui",
+						"add_entries"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

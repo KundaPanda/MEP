@@ -1,6 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from flask import render_template, url_for, Blueprint
 
 blueprint = Blueprint("error_handlers", __name__)
+"""handlers for all HTTP errors for api
+
+"""
 
 
 @blueprint.app_errorhandler(400)
@@ -64,7 +70,7 @@ def method_not_allowed(dump):
 
 
 @blueprint.app_errorhandler(417)
-def method_not_allowed(dump):
+def expectation_failed(dump):
     return (
         render_template(
             "index.html",
@@ -76,7 +82,7 @@ def method_not_allowed(dump):
 
 
 @blueprint.app_errorhandler(418)
-def method_not_allowed(dump):
+def im_a_teapot(dump):
     return (
         render_template(
             "index.html",
@@ -88,7 +94,7 @@ def method_not_allowed(dump):
 
 
 @blueprint.app_errorhandler(500)
-def method_not_allowed(dump):
+def internal_server_error(dump):
     return (
         render_template(
             "index.html",
