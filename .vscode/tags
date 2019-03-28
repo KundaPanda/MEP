@@ -1,0 +1,160 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AUTH_COLUMNS	../api/db_handler.py	/^AUTH_COLUMNS = ""$/;"	kind:variable	line:17
+AUTH_DB_NAME	../api/db_handler.py	/^AUTH_DB_NAME = ""$/;"	kind:variable	line:16
+AUTH_TABLE_NAME	../api/db_handler.py	/^AUTH_TABLE_NAME = ""$/;"	kind:variable	line:18
+BACKUP_NAMES	../api/db_handler.py	/^BACKUP_NAMES = ["backup_latest_%s.gz" % DB_NAME]$/;"	kind:variable	line:31
+BACKUP_PATH	../api/db_handler.py	/^BACKUP_PATH = os.path.abspath("backups")$/;"	kind:variable	line:35
+BackgroundScheduler	../api/api.py	/^from apscheduler.schedulers.background import BackgroundScheduler$/;"	kind:namespace	line:9
+BeautifulSoup	../api/tickets.py	/^from bs4 import BeautifulSoup$/;"	kind:namespace	line:3
+Blueprint	../api/error_handler.py	/^from flask import render_template, url_for, Blueprint$/;"	kind:namespace	line:4
+BytesIO	../api/tickets.py	/^from io import BytesIO$/;"	kind:namespace	line:5
+CODE_LENGTH	../api/api.py	/^CODE_LENGTH = 20$/;"	kind:variable	line:33
+COLUMNS	../api/api.py	/^COLUMNS = ("id", "code", "used", "time")$/;"	kind:variable	line:31
+COLUMNS	../api/auth_handler.py	/^COLUMNS = ("username", "tablename")$/;"	kind:variable	line:9
+COLUMNS	../api/db_handler.py	/^COLUMNS = ("id", "code", "used", "time")$/;"	kind:variable	line:26
+DB_NAME	../api/auth_handler.py	/^DB_NAME = "users"$/;"	kind:variable	line:11
+DB_NAME	../api/db_handler.py	/^DB_NAME = "tickets"$/;"	kind:variable	line:28
+DEFAULT_TABLE_NAME	../api/db_handler.py	/^DEFAULT_TABLE_NAME = "tickets"$/;"	kind:variable	line:24
+Flask	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+HOST	../api/auth_handler.py	/^HOST = "localhost"$/;"	kind:variable	line:13
+HOST	../api/db_handler.py	/^HOST = "localhost"$/;"	kind:variable	line:30
+LOGGING_TO_FILE	../api/api.py	/^LOGGING_TO_FILE = False$/;"	kind:variable	line:28
+POOL_SIZE	../api/auth_handler.py	/^POOL_SIZE = 100$/;"	kind:variable	line:8
+POOL_SIZE	../api/db_handler.py	/^POOL_SIZE = 100$/;"	kind:variable	line:25
+PORT	../api/auth_handler.py	/^PORT = "5432"$/;"	kind:variable	line:12
+PORT	../api/db_handler.py	/^PORT = "5432"$/;"	kind:variable	line:29
+PUBLIC_PATH	../api/api.py	/^PUBLIC_PATH = os.path.abspath('public')$/;"	kind:variable	line:34
+PUBLIC_PATH	../api/tickets.py	/^PUBLIC_PATH = "public"$/;"	kind:variable	line:8
+QR_PATH	../api/tickets.py	/^QR_PATH = "qr"$/;"	kind:variable	line:7
+Response	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+TABLE_NAME	../api/auth_handler.py	/^TABLE_NAME = "users"$/;"	kind:variable	line:14
+TEMPLATES_PATH	../api/tickets.py	/^TEMPLATES_PATH = "templates"$/;"	kind:variable	line:9
+USER	../api/auth_handler.py	/^USER = "postgres"$/;"	kind:variable	line:10
+USER	../api/db_handler.py	/^USER = "postgres"$/;"	kind:variable	line:27
+__init__	../api/db_handler.py	/^    def __init__(self, master_pool=pg_pool):$/;"	kind:member	line:142
+__init__	../api/db_handler.py	/^    def __init__(self, pool=None):$/;"	kind:member	line:43
+abort	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+add_entries	../api/api.py	/^def add_entries(table_name, size, **kwargs):$/;"	kind:function	line:203
+add_entries	../api/db_handler.py	/^def add_entries(values, table_name, cursor_wrapper=None, dispose=True, columns=COLUMNS):$/;"	kind:function	line:460
+add_users	../api/api.py	/^def add_users(table_name, users, **kwargs):$/;"	kind:function	line:291
+add_users	../api/auth_handler.py	/^def add_users(users, table, cursor_wrapper=None, dispose=True, users_column=COLUMNS[0], tables_column=COLUMNS[1]):$/;"	kind:function	line:31
+api	../api/api.py	/^api = Flask(__name__, template_folder="templates", static_folder="static")$/;"	kind:variable	line:23
+api.py	../api/api.py	1;"	kind:file	line:1
+assigned_user_table	../api/api.py	/^def assigned_user_table(user, **kwargs):$/;"	kind:function	line:354
+atexit	../api/api.py	/^import atexit$/;"	kind:namespace	line:10
+auth_handler	../api/api.py	/^import auth_handler$/;"	kind:namespace	line:19
+auth_handler.py	../api/auth_handler.py	1;"	kind:file	line:1
+backup_db	../api/api.py	/^def backup_db(**kwargs):$/;"	kind:function	line:154
+bad_request	../api/error_handler.py	/^def bad_request(dump):$/;"	kind:function	line:13
+base64	../api/tickets.py	/^import base64$/;"	kind:namespace	line:4
+blueprint	../api/error_handler.py	/^blueprint = Blueprint("error_handlers", __name__)$/;"	kind:variable	line:6
+check_and_update_code	../api/db_handler.py	/^def check_and_update_code(value, table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:388
+check_pool	../api/db_handler.py	/^    def check_pool(self, pool=None):$/;"	kind:member	line:104
+choice	../api/api.py	/^from random import randint, choice$/;"	kind:namespace	line:8
+clear_table	../api/api.py	/^def clear_table(table_name, **kwargs):$/;"	kind:function	line:141
+clear_table	../api/db_handler.py	/^def clear_table(table_name, primary_column_name=COLUMNS[0], cursor_wrapper=None, dispose=True):$/;"	kind:function	line:516
+client	../api/api.py	/^def client(method):$/;"	kind:function	line:469
+close_pool	../api/db_handler.py	/^    def close_pool(self, pool=None):$/;"	kind:member	line:79
+commit	../api/db_handler.py	/^    def commit(self):$/;"	kind:member	line:172
+create_backup	../api/db_handler.py	/^def create_backup(scheduled=True, database=DB_NAME):$/;"	kind:function	line:657
+create_database_if_not_exists	../api/db_handler.py	/^def create_database_if_not_exists(database, user, host, port):$/;"	kind:function	line:205
+create_default_table_if_not_exists	../api/db_handler.py	/^def create_default_table_if_not_exists(database, user, host, port):$/;"	kind:function	line:237
+create_dict_result	../api/db_handler.py	/^def create_dict_result(results, columns=COLUMNS):$/;"	kind:function	line:183
+create_table	../api/api.py	/^def create_table(table_name, size=0, **kwargs):$/;"	kind:function	line:99
+create_table	../api/db_handler.py	/^def create_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:584
+datetime	../api/api.py	/^from datetime import datetime$/;"	kind:namespace	line:16
+datetime	../api/db_handler.py	/^from datetime import datetime$/;"	kind:namespace	line:10
+db_handler	../api/auth_handler.py	/^import db_handler$/;"	kind:namespace	line:4
+db_handler.py	../api/db_handler.py	1;"	kind:file	line:1
+delete_all_users	../api/api.py	/^def delete_all_users(**kwargs):$/;"	kind:function	line:321
+delete_all_users	../api/auth_handler.py	/^def delete_all_users():$/;"	kind:function	line:92
+delete_all_users_for_table	../api/auth_handler.py	/^def delete_all_users_for_table(table_name):$/;"	kind:function	line:104
+delete_entry	../api/db_handler.py	/^def delete_entry(value, table_name, column_name, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:434
+delete_file	../api/api.py	/^def delete_file(afile, filename=None):$/;"	kind:function	line:62
+delete_listener	../api/api.py	/^def delete_listener(ascheduler):$/;"	kind:function	line:85
+delete_table	../api/api.py	/^def delete_table(table_name, **kwargs):$/;"	kind:function	line:128
+delete_users_for_table	../api/api.py	/^def delete_users_for_table(table_name, **kwargs):$/;"	kind:function	line:336
+drop_table	../api/db_handler.py	/^def drop_table(table_name, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:560
+error_handler	../api/api.py	/^import error_handler$/;"	kind:namespace	line:12
+error_handler.py	../api/error_handler.py	1;"	kind:file	line:1
+expectation_failed	../api/error_handler.py	/^def expectation_failed(dump):$/;"	kind:function	line:73
+export_codes	../api/tickets.py	/^def export_codes(codes, per_page=8, file_format="pdf"):$/;"	kind:function	line:73
+export_table	../api/db_handler.py	/^def export_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:610
+export_tickets	../api/api.py	/^def export_tickets(table_name, file_format, per_page, **kwargs):$/;"	kind:function	line:372
+file_scheduler	../api/api.py	/^    file_scheduler = BackgroundScheduler()$/;"	kind:variable	line:531
+file_scheduler	../api/api.py	/^file_scheduler = None$/;"	kind:variable	line:25
+filename	../api/api.py	/^            filename="api_log.log",$/;"	kind:variable	line:559
+find_corresponding_table	../api/auth_handler.py	/^def find_corresponding_table(user):$/;"	kind:function	line:72
+forbidden	../api/error_handler.py	/^def forbidden(dump):$/;"	kind:function	line:37
+generate_page	../api/tickets.py	/^def generate_page(codes, start_index=0, per_page=8, pagenum=1):$/;"	kind:function	line:14
+get_cursor	../api/db_handler.py	/^class get_cursor:$/;"	kind:class	line:136
+get_file	../api/api.py	/^def get_file(filename):$/;"	kind:function	line:506
+get_pool	../api/db_handler.py	/^    def get_pool(self, pool=None, maxconn=POOL_SIZE, user=USER, host=HOST, port=PORT, database=DB_NAME):$/;"	kind:member	line:46
+get_pool_init	../api/auth_handler.py	/^def get_pool_init():$/;"	kind:function	line:25
+get_random_code	../api/api.py	/^def get_random_code(length):$/;"	kind:function	line:39
+get_random_filename	../api/api.py	/^def get_random_filename():$/;"	kind:function	line:52
+get_tables	../api/db_handler.py	/^def get_tables(cursor_wrapper=None, dispose=True):$/;"	kind:function	line:491
+gzip	../api/db_handler.py	/^import gzip$/;"	kind:namespace	line:8
+handler	../api/api.py	/^import db_handler as handler$/;"	kind:namespace	line:4
+handlers	../api/api.py	/^import logging.handlers$/;"	kind:namespace	line:18
+i	../api/db_handler.py	/^    i = str(i)$/;"	kind:variable	line:33
+im_a_teapot	../api/error_handler.py	/^def im_a_teapot(dump):$/;"	kind:function	line:85
+internal_server_error	../api/error_handler.py	/^def internal_server_error(dump):$/;"	kind:function	line:97
+json	../api/api.py	/^import json$/;"	kind:namespace	line:5
+jsonify	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+logging	../api/api.py	/^import logging$/;"	kind:namespace	line:17
+logging	../api/api.py	/^import logging.handlers$/;"	kind:namespace	line:18
+logging_handler	../api/api.py	/^        logging_handler = logging.handlers.RotatingFileHandler($/;"	kind:variable	line:558
+maxBytes	../api/api.py	/^            maxBytes=(1024 * 1024),$/;"	kind:variable	line:560
+method_not_allowed	../api/error_handler.py	/^def method_not_allowed(dump):$/;"	kind:function	line:61
+methods_client	../api/api.py	/^methods_client = {$/;"	kind:variable	line:406
+methods_ui	../api/api.py	/^methods_ui = {$/;"	kind:variable	line:389
+not_found	../api/error_handler.py	/^def not_found(dump):$/;"	kind:function	line:49
+optional_parameters	../api/api.py	/^optional_parameters = {"file_format": "pdf", "per_page": 8}$/;"	kind:variable	line:432
+os	../api/api.py	/^import os$/;"	kind:namespace	line:6
+os	../api/db_handler.py	/^import os$/;"	kind:namespace	line:9
+os	../api/tickets.py	/^import os$/;"	kind:namespace	line:2
+parameter_names	../api/api.py	/^parameter_names = {$/;"	kind:variable	line:413
+parameters	../api/api.py	/^parameters = {"table_name": "", "size": "", "data": "",$/;"	kind:variable	line:429
+pg_dump	../api/db_handler.py	/^from sh import pg_dump$/;"	kind:namespace	line:7
+pg_pool	../api/auth_handler.py	/^pg_pool = db_handler.postgre_pool()$/;"	kind:variable	line:22
+pg_pool	../api/db_handler.py	/^pg_pool = postgre_pool()$/;"	kind:variable	line:133
+pool	../api/api.py	/^from psycopg2 import pool$/;"	kind:namespace	line:14
+pool	../api/db_handler.py	/^import psycopg2.pool$/;"	kind:namespace	line:5
+postgre_pool	../api/db_handler.py	/^class postgre_pool:$/;"	kind:class	line:38
+psycopg2	../api/db_handler.py	/^import psycopg2$/;"	kind:namespace	line:4
+psycopg2	../api/db_handler.py	/^import psycopg2.pool$/;"	kind:namespace	line:5
+qrcode	../api/tickets.py	/^import qrcode$/;"	kind:namespace	line:1
+randint	../api/api.py	/^from random import randint, choice$/;"	kind:namespace	line:8
+rename_backups	../api/db_handler.py	/^def rename_backups(index=0):$/;"	kind:function	line:638
+render_template	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+render_template	../api/error_handler.py	/^from flask import render_template, url_for, Blueprint$/;"	kind:namespace	line:4
+request	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+restore_db	../api/api.py	/^def restore_db(filepath, **kwargs):$/;"	kind:function	line:188
+rollback	../api/db_handler.py	/^    def rollback(self):$/;"	kind:member	line:161
+select_code	../api/api.py	/^def select_code(table_name, code, **kwargs):$/;"	kind:function	line:251
+select_row	../api/db_handler.py	/^def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:356
+send_from_directory	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+simple_sql_command	../api/db_handler.py	/^def simple_sql_command(sql_string, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:274
+simple_sql_select	../api/db_handler.py	/^def simple_sql_select(sql_string, cursor_wrapper=None, dispose=True):$/;"	kind:function	line:313
+sleep	../api/api.py	/^from time import sleep$/;"	kind:namespace	line:15
+stream_with_context	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+string	../api/api.py	/^import string$/;"	kind:namespace	line:11
+tempCodeRunnerFile.py	../api/tempCodeRunnerFile.py	1;"	kind:file	line:1
+tempfile	../api/api.py	/^import tempfile$/;"	kind:namespace	line:13
+tickets	../api/api.py	/^import tickets$/;"	kind:namespace	line:20
+tickets.py	../api/tickets.py	1;"	kind:file	line:1
+tickets_backup_scheduler	../api/api.py	/^    tickets_backup_scheduler = BackgroundScheduler()$/;"	kind:variable	line:535
+time	../api/db_handler.py	/^import time$/;"	kind:namespace	line:6
+ui	../api/api.py	/^def ui(method):$/;"	kind:function	line:436
+unauthorized	../api/error_handler.py	/^def unauthorized(dump):$/;"	kind:function	line:25
+update_code	../api/api.py	/^def update_code(table_name, code, **kwargs):$/;"	kind:function	line:271
+url_for	../api/api.py	/^from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory$/;"	kind:namespace	line:7
+url_for	../api/error_handler.py	/^from flask import render_template, url_for, Blueprint$/;"	kind:namespace	line:4
+users_backup_scheduler	../api/api.py	/^    users_backup_scheduler = BackgroundScheduler()$/;"	kind:variable	line:541
+werkzeug_logger	../api/api.py	/^        werkzeug_logger = logging.getLogger("werkzeug")$/;"	kind:variable	line:564

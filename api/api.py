@@ -17,6 +17,7 @@ from datetime import datetime
 import logging
 import logging.handlers
 import auth_handler
+import tickets
 
 # initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
@@ -113,10 +114,7 @@ def create_table(table_name, size=0, **kwargs):
         return Response(status=406)
     if table_name and size:
         # get all table names of the database and check if the table is already in the database
-        tables = []
-        tables_tuple = handler.get_tables()
-        for table in tables_tuple:
-            tables.append(table[0])
+        tables = handler.get_tables()
         # if not in database, add it
         if table_name not in tables:
             result = handler.create_table(table_name)
@@ -308,11 +306,8 @@ def add_users(table_name, users, **kwargs):
         return Response(status=400)
     # check if users and table_name exist
     if isinstance(users, list) and table_name:
-        result = []
-        tables = handler.get_tables()
+        result = handler.get_tables()
         # check if the specified table exists
-        for table in tables:
-            result.append(table[0])
         if table_name in result:
             # if yes, then add users assigned to this table
             result = auth_handler.add_users(users, table_name)
@@ -356,7 +351,7 @@ def delete_users_for_table(table_name, **kwargs):
     return Response(status=304) if (result == 1) else Response(status=200)
 
 
-def assigned_user_table(user):
+def assigned_user_table(user, **kwargs):
     """finds the table that the user is assigned to
 
     Arguments:
@@ -374,6 +369,22 @@ def assigned_user_table(user):
     return result
 
 
+def export_tickets(table_name, file_format, per_page, **kwargs):
+    if file_format == "":
+        file_format = "pdf"
+    if per_page == "":
+        per_page = 8
+    codes = []
+    result_list = handler.export_table(table_name)
+    if result_list == 1 or type(result_list) != list:
+        return Response(status=400)
+    result_list = sorted(result_list, key=lambda k: k["id"])
+    for dictionary in result_list:
+        codes.append(dictionary[handler.COLUMNS[1]])
+    filename = tickets.export_codes(codes)
+    return jsonify(filename), 200
+
+
 # methods that can be called from /api/ui/<method>
 methods_ui = {
     "create_table": create_table,
@@ -388,6 +399,7 @@ methods_ui = {
     "delete_all_users": delete_all_users,
     "delete_users_for_table": delete_users_for_table,
     "assigned_user_table": assigned_user_table,
+    "export_tickets": export_tickets,
 }
 
 # methods that can be called from /api/client/<method>
@@ -411,10 +423,13 @@ parameter_names = {
     "delete_all_users": [],
     "delete_users_for_table": ["table_name"],
     "assigned_user_table": ["user"],
+    "export_tickets": ["table_name", "file_format", "per_page"]
 }
 
 parameters = {"table_name": "", "size": "", "data": "",
-              "code": "", "users": "", "user": ""}
+              "code": "", "users": "", "user": "", "file_format": "", "per_page": ""}
+
+optional_parameters = {"file_format": "pdf", "per_page": 8}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])
@@ -438,7 +453,12 @@ def ui(method):
     if method in methods_ui.keys():
         for parameter in parameter_names[method]:
             if parameter not in post_data:
-                abort(400)
+                # check if parameter is not optional
+                if parameter in optional_parameters.keys():
+                    parameters[parameter] = optional_parameters[parameter]
+                    continue
+                else:
+                    abort(400)
             parameters[parameter] = post_data[parameter]
         return (methods_ui[method](**parameters))
     else:

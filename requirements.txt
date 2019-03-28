@@ -1,3 +1,3 @@
 API:
-- Python: flask, psycopg2, APScheduler, sh
-- OS: postgresql
+- pip: flask, psycopg2, APScheduler, sh, pymaging, pdfkit, beautifulsoup4
+- OS: postgresql, wkhtmltopdf

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Codes export</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+        @media print {
+            body {
+                visibility: hidden;
+            }
+
+        }
+
+        @page {
+            size: 210mm 297mm;
+            margin: 0;
+        }
+
+        body * {
+            visibility: visible;
+        }
+
+        body {
+            transform: scale(0.32);
+            transform-origin: top left;
+            background-color: #fff;
+            padding: 0;
+            margin: 0;
+            display: block;
+            visibility: hidden;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        [class*="codes"] {
+            background-color: inherit;
+            width: 2360px;
+            height: 3380px;
+            padding: 64px 60px;
+            overflow: auto;
+            display: grid;
+            grid-gap: 0;
+            grid-template-rows: 1690px 1690px;
+            grid-template-columns: 590px 590px 590px 590px;
+            page-break-after: always;
+            page-break-inside: avoid;
+        }
+
+        [class*="qr"] {
+            background-color: inherit;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 60px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: black 3px solid;
+        }
+
+        [class*="qr"] img {
+            text-align: center;
+            position: relative;
+            max-width: auto;
+            flex: 1;
+        }
+
+        [class*="ticket"] {
+            background-color: inherit;
+            border: black 3px solid;
+            width: 568px;
+            height: 1668px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        [class*="textbox"] {
+            background-color: inherit;
+            width: 568px;
+            height: 60px;
+            margin-bottom: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            line-height: 60px;
+            font-size: 60px;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-wrap: break-word;
+            display: block;
+            font-weight: bold;
+        }
+
+        .custom {
+            background-color: rgb(255, 0, 179);
+            width: 568px;
+            height: fill;
+            font-size: 30px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            max-width: 100%;
+        }
+
+        [class*="ticket"]:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        [class*="ticket"]:nth-child(2) {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        [class*="ticket"]:nth-child(3) {
+            grid-column: 3;
+            grid-row: 1;
+        }
+
+        [class*="ticket"]:nth-child(4) {
+            grid-column: 4;
+            grid-row: 1;
+        }
+
+        [class*="ticket"]:nth-child(5) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        [class*="ticket"]:nth-child(6) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        [class*="ticket"]:nth-child(7) {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        [class*="ticket"]:nth-child(8) {
+            grid-column: 4;
+            grid-row: 2;
+        }
+    </style>
+</head>
+
+<body id="render_me">
+    <div class="codes-1">
+        <div class="ticket-1">
+            <div class="qr-1">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACl0lEQVR4nO3dTY6jMBCG4a8G9uQGcxTmanMzcpS5QViOFFSzwA42mBbRpJGR3lqlwX6EN+0/Ckvb6N0lSZ37IEmNp/Eo1PhRuPZ+oKCgoKCcq7RS80wvjDdJckkaTb3LlnsWyvZDWsPqahEKCgoKynvKaHO0y43J7Kf7bzP3v2Y36W5Jb6BQwX59/FlQUFBQUM5S2vJlk+I8QGpco5XLffRZUFBQUFDOVXb6gLhCdF/+9/eDdjuCmlqEgoKCgnI05j6g89K9uDUwtZJ0NyWl8go1tQgFBQUF5X+id5ca98fez296FhQUFBSUc5W2OAOQNNl2duBScc4w1dQiFBQUFJQ34vX6/3qYH/MDdqML1apqEQoKCgrK4Yh5X0li2NfxCBXT/qKmFqGgoKCgHFbMzOwW/mrc/8R3/iWFpIApJgPEq727e5pZVlWLUFBQUFCORjLCl7Ss7zTr2cGw1FnvFFfVIhQUFBSUtyMZ28ef3bpniFeHpesYPvgsKCgoKCjnKmmOmKlxKUsMU8gPGG3OEZtThnuXNLXqHh99FhQUFBSUc5XXnrCkZH2nHJKyTeNHEJ41tQgFBQUF5XBkizqbr0TnK/9J2axAVS1CQUFBQXkvkuV+LRvBc+RvAH3ns6CgoKCgnKvIi7H+QMRmopDkB7AWhIKCgnJRpRT9/peBSj0DfQAKCgrKRRWVNwGylf9n4VjJWLl3pw9AQUFBuaiibMS/SQzz7c+kmpMfgIKCgnJlZecMmXhogJb8AMVThm+vUuMtHDhcU4tQUFBQUD6pvEb8Zu36sxF3M9aCUFBQUC6q7J4jFjKCB5ma53bwnx8wUFOLUFBQUFCORitNhWOCTc1Tnc8HSOYF5qsK35WQWAtCQUFBuaryDwBk+c+Kp6+rAAAAAElFTkSuQmCC" />
+            </div>
+            <div class="textbox-1">
+                88148632549215204929
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-2">
+            <div class="qr-2">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACaUlEQVR4nO3dTW6DMBCG4W9KpC7hRuRmVW/W3AiWlRJNF+Bgg6kSJaGmemflkPDI3tj4Z4K0jNZdklS7f0k+iy5zx1vm2v2BgoKCgrK5UmW6+Hxvb3aQJLXJHc+sCwoKCgrK5kpvQxyS73qzD3czM2ukk1n03XiDHZ9eFxQUFBSUrZRD/rKpOkvSyeSS1Fv+d0+tCwoKCgpKIcrFrBm3BqLi39QFBQUFBeUlyjAPqLPde91JUpgBhCnBEOkNJbUIBQUFBeWRaN2lyr1bK76oLigoKCgo2yqH9QWeZbiUnTNcSmoRCgoKCsodUU2HPKPH/OjE6HntzpqzoSgoKCh7VhS6+LDU41NiWJdczeSI1WGQKKlFKCgoKCj3RZ10/ErGgGgekFyNBomiWoSCgoKCcnMkCb/RspCix/wwSISIxgBJzANQUFBQdqpovgnQTQ//9dpwEO0SMA9AQUFB2a+i+SZAKOZ7+ypZLLr+tqQWoaCgoKDcGvHZUFN1Vt+MxemLqHix2dnQ1mVltQgFBQUF5ebIn/UJn9okR2y+d9CxFoSCgoKyZ+Ua6QmgZIVoNT9gCNaCUFBQUHaqLF4Rk3nMvw4H83yycLWoFqGgoKCgPBLzjj+KeAFoSitgHoCCgoKyVyX/HrFvs2YspvkBi1SBZ9YFBQUFBWVDRfn8AEmZ/IC124pqEQoKCgrKg4r7WerNjlPRzMJEoXUPEwXmASgoKCj/UFn8hejX+E752v3TzOzdvZNOZuwHoKCgoOxU+fU9Yi4lmWOSpL4ZEsPidLGSWoSCgoKC8kjM/xVikTUQ7R+zFoSCgoKyX+UHTsg3llfj8McAAAAASUVORK5CYII=" />
+            </div>
+            <div class="textbox-2">
+                51105737145873095822
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-3">
+            <div class="qr-3">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACoElEQVR4nO3dwa6zIBCG4W9O3ffcwX8p9tLtHeleMmeBCFjb2MTfaPLOymJ9AhtQGVB6jdbdfayK7u7uLt3c+5UrflbKvg8UFBQUlMOVm5fR53Op45c0mJlZGhna6oo964KCgoKCcrgSu3izpjo3mD0k9zENB8UfpgvssXtdUFBQUFCOUpoP5+69niaXpMEkxcP/VxcUFBQUlGOVT2NA7Pht+tV2Mt3G1X+eqUUoKCgoKFsjjgH35R2+6eYafhelvnq4W11QUFBQUA5XgpXxW51uq2SgNB/wrK7Ysy4oKCgoKAcqzfo7fpeku8/zAXXpMsKZWoSCgoKC8kXE3NBuygDS8uY/pYB2OUWoy6Xu7j6eqUUoKCgoKFujkYJJUutxEkCKN/9T6TQR/DI1IElTqZ+rRSgoKCgoW6NxhWbOAg325m/xBVBx1qbS52O/uqCgoKCgHKvEKFYE14fd9Nanl1QdVsuLeReEgoKCckml7uLHqjROAhS9vaQ8MsyrhxkDUFBQUK6rBLN/U2+v/BwQiq0gJEnPvF9QioG9IlBQUFCurKjaCzQeFvuGphQhz4OE8p5x8TKeA1BQUFAuqjSuYOWUb1wUoClFSFKdOJQfBEKTlwqcqUUoKCgoKF9HsSigvvlfvgBKwZwwCgoKytWV5t0y4Pnmv3gkKJ4DrMojPVOLUFBQUFA2K/Yaj0UWaKh2ERryTPGcR3qqFqGgoKCgbI+X74i1Xm4JVGwQsZImyrsgFBQUlOsq+pAXVHT8/XJkqIeDM7UIBQUFBWVrvPmGTLVnxJw4lPaVSJH2C2LfUBQUFJRLKvq8PqCIetVAEbvVBQUFBQXlWOXNd8SWUXxaWGlj0fQIwXMACgoKykWVtVjOCfvKpwQkkReEgoKCcnHlDxYZ02DoJjjwAAAAAElFTkSuQmCC" />
+            </div>
+            <div class="textbox-3">
+                92156336804671543714
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-4">
+            <div class="qr-4">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACdElEQVR4nO3dQZKjIBTG8e+1qeqlfSNztb5ZcpS+QbKcqlhvFooC4pSpJA7p+r8Vov4KNiAIKi2jc4+OfIyTJDXul8IdH4W8+wMFBQUFZXel8Tgu44mhtY+6gzQZxTPLgoKCgoKyu3K1IQ756bNZISlpvMGOTy8LCgoKCspeyqLVHyKaDDI1N0nqXFa+uK4aoaCgoKA8qERDAvdbGCj8n7KgoKCgoLxIGZr61rPs/Lh1nY/rF9RUIxQUFBSUR6JzT94JL5IvKgsKCgoKyr7KIX/iH8Kl4eHfJPU2JVUYM0h9TTVCQUFBQbkjmnn5/yI6d/eb1I7rQKdkOiSoqUYoKCgoKJsV9z9mX+NRulXA3b+TFaNmn+4/YUGopNBJVFUjFBQUFJStEW0Ddr8lp9o5t533CU8bw55eFhQUFBSUfRVFc0GrUz1zrvJpoeG2mmqEgoKCgrI5/v05oG5u+MMFhf6iqhqhoKCgoNwRU8OfPNtHMcwQpWtDo3kjxgEoKCgob6pMUf46XIjVGaLTE8uCgoKCgrKvoqRdLy0TLbw0jr4bemIcgIKCgvK2igpfiVYy3e/uhQvSaaGaaoSCgoKCsjnyHQHR0s92uXMsWhsajxlqqhEKCgoKyiORDwkWC4c6+gAUFBSU36Co8B+x/PXwouFfvB6uqUYoKCgoKHdEs/YDyWn5/9ptjANQUFBQfq1yNTuOc0GXMSvqJHqzr9BfvEuNUFBQUFA2KNF2sfyXYpLOZlHy1WVBQUFBQXmpElaBpt+MC+OAaVOA2SFcG3oGxgEoKCgo76scpL7wn+Akqw8DAVdvai/TiWu4rKYaoaCgoKBsjb9+tQoCy/cYnAAAAABJRU5ErkJggg==" />
+            </div>
+            <div class="textbox-4">
+                18339275075097243484
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-5">
+            <div class="qr-5">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACZklEQVR4nO3dTY6jMBCG4a8G9vSN6JvN1ZKjzA3IHlSzSACXcVpEnUam9dYKEfuRvQH/lIO0jd7dfQy3Ond3lxr3oVDjT+He64GCgoKCcrjSeBqDJMmslfR4Hbj7PzMzmyv1ocY724KCgoKCcrhys3u08+0wD5jMPqTePan3qGCfb28LCgoKCspRSvvFb92g6zL219Xkz0rW1CMUFBQUlG8qZq10M/u7bgLEecCBbUFBQUFB+SHlPg/o8se7a2qXecBkpQLvbwsKCgoKyrFKKfps8L+5/KG2oKCgoKAcq7TlBR5fB/+uydKfNlMCaaqpRygoKCgoL0RpxD/HRUoyRkNCaLMWGGvqEQoKCgrK7nAfpW592pdj2JZNL2vqEQoKCgrK7ggnATbL/XMyUPd4F4z5keGeM2IoKCgop1WWwf9FCkeGN7ODS/a+0FzgbW1BQUFBQTlWUTL4n1d9+nW537NLJQ9+ScwDUFBQUM6sKF/f2cwDJOWXnqeJ1tQjFBQUFJQXopTzn68QDaFsz34ACgoKym9Q9MWIX+EPIvo8ITQRauoRCgoKCsoL8XQ/IN4tBHvCKCgoKKdWnhwKyAsM251irVsDVfUIBQUFBeU70T+e88P6SbG4EZyvEFXVIxQUFBSUvdFKTUj6v30sl53fPxrQuCRdP5e7MZz/C0JBQUE5p6IdaT9xASip5uwHoKCgoPxCZU77uZrN35JUdpYgLXuCHqGgoKCglKI8D9Ca9lP+jhjnA1BQUFDOrigcDvbw39FD/uAvpwgxD0BBQUE5qVKKOA9IzgeEl8WYlK2pRygoKCgoe+M/6ilimcGlVzoAAAAASUVORK5CYII=" />
+            </div>
+            <div class="textbox-5">
+                83412802871058173227
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-6">
+            <div class="qr-6">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACoklEQVR4nO3dTY6jMBCG4a8GpF7CDfoo5OhwlLlBsmwJVL0wBps2UpjJZEB6axUZ+xHe4BT+QfoZnbtUud+lzn/EvdDiV6HseKCgoKCgvFeppWpMCx6tJLkmU+OSZGuF+LPr0xZ2rh6hoKCgoBxTHhaizq49zG6S+5dZKw1mybW5gd1efi8oKCgoKO9S6nKxSVJzDz8r18PK9V56LygoKCgoJ1Eq99/z3/zJrJ1nCf7PvaCgoKCg/BMl5AHN/uNdrqmWpMHkaenr7wUFBQUF5e3KZGm02xpmH3GJUJwwGLIWr7wXFBQUFJQ3KvVeBjAVZgBcKuYM05l6hIKCgoJyIKq48j9uCojRzOXjXstmbnaqHqGgoKCgPB3Zvq8wHPSS+7g+4pdBorBHrGMMQEFBQbmsEqJx76UkD0ie9kkeEEu7dThgDEBBQUG5sBIf8Z27+5fZ5zwcTGaf7j5PBIdBIps0npL541P1CAUFBQXlaHSbVz27UwMxZxDzASgoKCgXV5RMAkjKHvGaR4YlUSiMDL3kPp6pRygoKCgoz0a93fcVT4VITpKr1jrhJLnhttTtnDPjUFBQUK6qpPO82QqgfF3QfXuMdJ4SnKlHKCgoKCh/EoVlP8rWBRWCdUEoKCgo11XkxdjuHPN18WgsTQTmA1BQUFAuqZSi2z8htMreG90lMQagoKCgXFZRYRtw8ua/X7cM91ldScmK0TP1CAUFBQXlQFTbTQHd5l2Qkp0AWbNlSemZeoSCgoKC8peK+7h+S3KMH5vM1hCFYE4YBQUF5brKzrckJa2nRIf9AcMtfFM+lPp6uLRzdjQKCgrKlZXlxf56YTkOyKyOKYGkmBLEauQBKCgoKNdV6vLXYpIPyfumQsgDQoU2/DxVj1BQUFBQno1vMjTqDH/yieEAAAAASUVORK5CYII=" />
+            </div>
+            <div class="textbox-6">
+                81524327750200232632
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-7">
+            <div class="qr-7">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACuElEQVR4nO3dTa6bMBSG4e8U5mQHXYrvzq66M7KU7iAMK4FOB2BjB3JLpIQL1XtGBOJH9sTGP9jSMoKvRStJlfttJcWPlXvPBwoKCgrK7kpVVPU3SZJZLXVmZiYNZmb26R4TlY3EK/OCgoKCgrK7Mtb2ZnXxrHF3d7Naatx/mbn38dmUwD5enhcUFBQUlG9XBrOLdDWLvYMwNQffkBcUFBQUlLcoDyp1l6TOFNL4j64f784LCgoKCsq+ytgGNL54MMTWwVTFEaDsX2WCI5UIBQUFBWVr1NJgy9umytVd0u/uouCpObjepzhSiVBQUFBQtoYtewCSVFTyVZ+ag9QlKGI4UolQUFBQUJ6IxdrQ4HnDUK4ClTStDe3nP/RHKhEKCgoKytaox9nfizSN8a9PDTS38TJ1CbKOgh2rRCgoKCgomyP7DDi+28d+QFPcjdFMCfp4+bK8oKCgoKDsq9TxhT64pMol6Wr5sh+TlPoBWVSuzhRaOfMBKCgoKOdUlG0QkV1mswSSYpdgfe6A+QAUFBSUkyqK9Xp7N/tbzVX84q6mEaI0LHSkEqGgoKCgPBHVvBhofVvQ9Zf/LGgDUFBQUE6p6NGoj+Y54cWkseZ+QPvCvKCgoKCg7KuoGN/xokuwMkJUBuuCUFBQUE6t5FX8Sm0f7ir+rM+QjRAxFoSCgoJySmUtgns21JONBRVzB2IsCAUFBeXkSn2/B1DaGcinvaPj9wHpcuoZ5MmOVCIUFBQUlK0x7hD99ZZwVa9u+pSs3GM0bSx6pBKhoKCgoGyNB2fIjJsEuXR3UsC4X1BoJQ02/YH9glBQUFD+N6Vy/z2fMhynBv7EEyZ3zQsKCgoKyhuV9MHv/GAw+zl/FNCZfc4TwT4fLTw2B8crEQoKCgrKv+PhOWJjBFd2rGQWXtw9UolQUFBQULbGX5cR/roNSLsjAAAAAElFTkSuQmCC" />
+            </div>
+            <div class="textbox-7">
+                53890114977696692314
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+        <div class="ticket-5">
+            <div class="qr-8">
+                <img alt="QR Code"
+                    src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAiYAAAImAQAAAABPtXzrAAACZUlEQVR4nO3dQW6DMBCF4TcFqUtyI3L05EZkWQk0XYCLDaZKW0px9c8qAfzJ3gD22EZaR+suVe7d/DOKLlPiJXPs64GCgoKCcriSu8W7v5ldpLtZdLFZLUlqkxJ71gUFBQUF5XDlYWPUybnG/SZJQ/ZxMMZ197qgoKCgoByl1PnDpsr1MLU+/n9Y/rpd64KCgoKCchJlfPnX9MZ/mVIDf1MXFBQUFJRfUcZ+QLN9e5drqCXpbvL46P51QUFBQUE5XBksjst0ogrpYbPXMEUoJAzuSYk964KCgoKCcqBSf9IDGHsHy5f/TJ9hOFOLUFBQUFC+ENU8ybOap/9HRzejYW4oCgoKSslKGqulAulKANaIoaCgoPwrZYxxJYB7LylZHBwdlZQ8Gfqo/JlahIKCgoLybNSuof6Y/l+5tJwBJElqOt2vyi8ScPIBKCgoKGUqcSzf+H1aJ6ww8u/eR0kA8gEoKCgohStaZn+jYaHoxq9kJ7kQYTOJU7UIBQUFBeXpiN74o7t98gyId4fL9APc+zO1CAUFBQXl6YjyvMtEcLjbV5kpQmmX4EwtQkFBQUH5TkRTP5PUQL9VgH4ACgoKStGKPBuSkn5ASA+v1pO15IRRUFBQilVykcn+hlh9Xewm0Q9AQUFBKVTR1uLgfjlF6JZcGwq3jAWhoKCgFKtouUlQN38pYDUDaKvYqVqEgoKCgvJDxb2XHmbX+aeZRUljSawRQ0FBQfnHSjoAdJu+Kd/MXxm26cnAWBAKCgpKkYo+2Sy0W6eHc+NGPANQUFBQClVy0SYj/8n6gNVuoswNRUFBQSlXeQcRzDi8xiyArAAAAABJRU5ErkJggg==" />
+            </div>
+            <div class="textbox-8">
+                16503902236451975466
+            </div>
+            <div class="custom">
+            </div>
+        </div>
+    </div>
+</body>
+
+
+
+</html>

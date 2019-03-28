@@ -180,22 +180,25 @@ class get_cursor:
         self.master_pool.pool.putconn(self.connection)
 
 
-def create_dict_result(result, columns=COLUMNS):
+def create_dict_result(results, columns=COLUMNS):
     """creates dictionary column_key = value from the result of a select sql command
 
     Arguments:
-        result {[list of tuples]} -- [result provided by the simple_sql_select (format ('one', 'two', ...))]
+        results {[list of tuples]} -- [result provided by the simple_sql_select (format ('one', 'two', ...))]
 
     Keyword Arguments:
         columns {[tuple]} -- [column names] (default: {COLUMNS})
 
     Returns:
-        [dictionary] -- [result in dictionary where keys are column names]
+        [array(dictionaries)] -- [result in array of dictionary where keys are column names]
     """
 
-    dict_result = {}
-    for i in range(len(result)):
-        dict_result[columns[i]] = result[i]
+    dict_result = []
+    for result in results:
+        result_dictionary = {}
+        for i in range(len(result)):
+            result_dictionary[columns[i]] = result[i]
+        dict_result.append(result_dictionary)
     return dict_result
 
 
@@ -365,7 +368,7 @@ def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True)
         dispose {[boolean]} -- [whether to dispose the cursor_wrapper after execution] (default: {True})
 
     Returns:
-        [list of dicitionaries OR True] -- [list containing dictionaries with row data OR True if failed]
+        [dicitionary OR True] -- [dictionary with row data, where keys are column names OR True if failed]
     """
 
     colvalue = str(colvalue)
@@ -375,11 +378,8 @@ def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True)
     try:
         command_result = simple_sql_select(
             sql_string, cursor_wrapper, dispose)
-
-        dict_result = []
-        for row in command_result:
-            dict_result.append(create_dict_result(row))
-        return dict_result[0]
+        if command_result != 1:
+            return create_dict_result(command_result)[0]
     except Exception as e:
         print(e)
     return command_result
@@ -496,7 +496,7 @@ def get_tables(cursor_wrapper=None, dispose=True):
         dispose {[boolean]} -- [whether to dispose the cursor_wrapper after execution] (default: {True})
 
     Returns:
-        [list of dictionaries OR True] -- [keys = column names, values = values in the row, each dictionary = one row OR 1 = Failed]
+        [list(strings) OR True] -- [list of all table names OR 1 = Failed]
     """
 
     sql_string = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
@@ -506,7 +506,11 @@ def get_tables(cursor_wrapper=None, dispose=True):
             sql_string, cursor_wrapper, dispose)
     except Exception as e:
         print(e)
-    return command_result
+    if command_result != 1:
+        tables = []
+        for table in command_result:
+            tables.append(table[0])
+    return tables
 
 
 def clear_table(table_name, primary_column_name=COLUMNS[0], cursor_wrapper=None, dispose=True):
@@ -601,6 +605,34 @@ def create_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True)
     except Exception as e:
         print(e)
     return command_result
+
+
+def export_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):
+    """exports all the codes in a table
+
+    Arguments:
+        table_name {[string]} -- [name of the table to export]
+
+    Keyword Arguments:
+        cursor_wrapper {[get_cursor]} -- [cursor wrapper to be executed with (for multiple actions with a single cursor)] (default: {new wrapper})
+        dispose {[boolean]} -- [whether to dispose the cursor_wrapper after execution] (default: {True})
+
+    Returns:
+        [list of dictionaries OR True] -- [list of dictionaries, where dictionary is a single row, keys are column names OR True if failed]
+    """
+
+    if table_name in get_tables():
+        sql_string = "SELECT * FROM %s" % table_name
+        command_result = 1
+        try:
+            command_result = simple_sql_select(
+                sql_string, cursor_wrapper, dispose)
+        except Exception as e:
+            print(e)
+        if command_result != 1:
+            return create_dict_result(command_result, columns)
+        return command_result
+    return 1
 
 
 def rename_backups(index=0):

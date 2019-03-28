@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2480" height="3508" version="1.1">
+    <rect width="590" height="1690" x="60" y="64" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="650" y="64" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="1240" y="64" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="1830" y="64" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="60" y="1754" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="650" y="1754" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="1240" y="1754" fill="gray" stroke="black"/>
+    <rect width="590" height="1690" x="1830" y="1754" fill="gray" stroke="black"/>
+    <svg id="qr-1" width="570" height="570" x="70" y="74">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-2" width="570" height="570" x="660" y="74">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-3" width="570" height="570" x="1250" y="74">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-4" width="570" height="570" x="1840" y="74">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-5" width="570" height="570" x="70" y="1764">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-6" width="570" height="570" x="660" y="1764">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-7" width="570" height="570" x="1250" y="1764">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <svg id="qr-8" width="570" height="570" x="1840" y="1764">
+        <rect width="100%" height="100%" fill="white"/>
+    </svg>
+    <text id="code-1" x="355" y="704" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-2" x="945" y="704" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-3" x="1535" y="704" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-4" x="2125" y="704" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-5" x="355" y="2394" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-6" x="945" y="2394" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-7" x="1535" y="2394" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <text id="code-8" x="2125" y="2394" fill="red" font-size="60px" font-weight="bold" text-anchor="middle">
+
+    </text>
+    <rect width="570" height="1020" x="70" y="724" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="660" y="724" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="1250" y="724" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="1840" y="724" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="70" y="2414" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="660" y="2414" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="1250" y="2414" fill="blue" stroke="black"/>
+    <rect width="570" height="1020" x="1840" y="2414" fill="blue" stroke="black"/>
+</svg>
