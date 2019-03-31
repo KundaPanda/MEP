@@ -4,14 +4,12 @@
 import psycopg2
 import psycopg2.pool
 import time
-from sh import pg_dump
+import subprocess
 import gzip
 import os
 from datetime import datetime
 
-
 # MAXIMUM TABLE NAME LENGTH = 40 CHARACTERS
-
 
 AUTH_DB_NAME = ""
 AUTH_COLUMNS = ""
@@ -43,7 +41,13 @@ class postgre_pool:
     def __init__(self, pool=None):
         self.pool = pool
 
-    def get_pool(self, pool=None, maxconn=POOL_SIZE, user=USER, host=HOST, port=PORT, database=DB_NAME):
+    def get_pool(self,
+                 pool=None,
+                 maxconn=POOL_SIZE,
+                 user=USER,
+                 host=HOST,
+                 port=PORT,
+                 database=DB_NAME):
         """creates a pool based on parameters and sets it as self.pool
 
         Keyword Arguments:
@@ -63,10 +67,15 @@ class postgre_pool:
                 try:
                     # if there is no pool, check for database validity and create a new one
                     create_database_if_not_exists(database, user, host, port)
-                    create_default_table_if_not_exists(
-                        database, user, host, port)
+                    create_default_table_if_not_exists(database, user, host,
+                                                       port)
                     self.pool = psycopg2.pool.ThreadedConnectionPool(
-                        maxconn=maxconn, minconn=1, user=user, host=host, port=port, database=database)
+                        maxconn=maxconn,
+                        minconn=1,
+                        user=user,
+                        host=host,
+                        port=port,
+                        database=database)
                 except (psycopg2.OperationalError, Exception) as e:
                     print(e)
                     self.pool = None
@@ -213,8 +222,7 @@ def create_database_if_not_exists(database, user, host, port):
     """
 
     # creates a new connection
-    connection = psycopg2.connect(
-        user=user, host=host, port=port)
+    connection = psycopg2.connect(user=user, host=host, port=port)
     connection.autocommit = True
     cursor = connection.cursor()
     sql_string = "SELECT COUNT(*) FROM pg_catalog.pg_database WHERE datname = '%s'" % database
@@ -353,7 +361,11 @@ def simple_sql_select(sql_string, cursor_wrapper=None, dispose=True):
     return 1
 
 
-def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True):
+def select_row(colname,
+               colvalue,
+               table_name,
+               cursor_wrapper=None,
+               dispose=True):
     """checks for a code in a table
     @out:
 
@@ -372,12 +384,11 @@ def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True)
     """
 
     colvalue = str(colvalue)
-    sql_string = "SELECT * FROM %s WHERE %s = '%s'" % (
-        table_name, colname, colvalue)
+    sql_string = "SELECT * FROM %s WHERE %s = '%s'" % (table_name, colname,
+                                                       colvalue)
     command_result = 1
     try:
-        command_result = simple_sql_select(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_select(sql_string, cursor_wrapper, dispose)
         if command_result != 1:
             return create_dict_result(command_result)[0]
     except Exception as e:
@@ -385,7 +396,11 @@ def select_row(colname, colvalue, table_name, cursor_wrapper=None, dispose=True)
     return command_result
 
 
-def check_and_update_code(value, table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):
+def check_and_update_code(value,
+                          table_name,
+                          columns=COLUMNS,
+                          cursor_wrapper=None,
+                          dispose=True):
     """checks for a value in table (see select_row) and if found, updates its data (time last requested, number of requests) and returns data before the update
 
     Arguments:
@@ -411,17 +426,19 @@ def check_and_update_code(value, table_name, columns=COLUMNS, cursor_wrapper=Non
     command_result = 1
     try:
         # check if the value is even in the table
-        current_data = select_row(
-            columns[1], value, table_name, cursor_wrapper, False)
+        current_data = select_row(columns[1], value, table_name,
+                                  cursor_wrapper, False)
         print(current_data)
         if current_data:
             # if yes, update it
-            current_data["used"] = 0 if not current_data["used"] else current_data["used"]
+            current_data["used"] = 0 if not current_data[
+                "used"] else current_data["used"]
             # increment used count, set time to current timestamp
             sql_string = "UPDATE %s SET %s=%s, %s='%s' WHERE %s='%s' " % (
-                table_name, columns[2], current_data["used"] + 1, columns[3], datetime.now(), columns[1], value)
-            command_result = simple_sql_command(
-                sql_string, cursor_wrapper, dispose)
+                table_name, columns[2], current_data["used"] + 1, columns[3],
+                datetime.now(), columns[1], value)
+            command_result = simple_sql_command(sql_string, cursor_wrapper,
+                                                dispose)
         else:
             # necessary to close the connection
             cursor_wrapper.commit()
@@ -431,7 +448,11 @@ def check_and_update_code(value, table_name, columns=COLUMNS, cursor_wrapper=Non
     return 1 if command_result else current_data
 
 
-def delete_entry(value, table_name, column_name, cursor_wrapper=None, dispose=True):
+def delete_entry(value,
+                 table_name,
+                 column_name,
+                 cursor_wrapper=None,
+                 dispose=True):
     """adds 1 or more entries to a table in the database
 
     Arguments:
@@ -446,18 +467,22 @@ def delete_entry(value, table_name, column_name, cursor_wrapper=None, dispose=Tr
     Returns:
         [boolean] -- [False if success else True]
     """
-    sql_string = "DELETE FROM %s WHERE %s='%s'" % (
-        table_name, column_name, value)
+    sql_string = "DELETE FROM %s WHERE %s='%s'" % (table_name, column_name,
+                                                   value)
     command_result = 1
     try:
-        command_result = simple_sql_command(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_command(sql_string, cursor_wrapper,
+                                            dispose)
     except Exception as e:
         print(e)
     return command_result
 
 
-def add_entries(values, table_name, cursor_wrapper=None, dispose=True, columns=COLUMNS):
+def add_entries(values,
+                table_name,
+                cursor_wrapper=None,
+                dispose=True,
+                columns=COLUMNS):
     """adds 1 or more entries to a table in the database
 
     Arguments:
@@ -475,14 +500,14 @@ def add_entries(values, table_name, cursor_wrapper=None, dispose=True, columns=C
     # create a sql insert string with all the values (format: ('value1'), ('value2'), ...)
     values_string = ""
     for i in range(len(values)):
-        values_string += ("('" + values[i] + "')" +
-                          ", " * (i != len(values) - 1))
-    sql_string = "INSERT INTO %s (%s) VALUES %s" % (
-        table_name, columns[1], values_string)
+        values_string += (
+            "('" + values[i] + "')" + ", " * (i != len(values) - 1))
+    sql_string = "INSERT INTO %s (%s) VALUES %s" % (table_name, columns[1],
+                                                    values_string)
     command_result = 1
     try:
-        command_result = simple_sql_command(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_command(sql_string, cursor_wrapper,
+                                            dispose)
     except Exception as e:
         print(e)
     return command_result
@@ -502,8 +527,7 @@ def get_tables(cursor_wrapper=None, dispose=True):
     sql_string = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
     command_result = 1
     try:
-        command_result = simple_sql_select(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_select(sql_string, cursor_wrapper, dispose)
     except Exception as e:
         print(e)
     if command_result != 1:
@@ -513,7 +537,10 @@ def get_tables(cursor_wrapper=None, dispose=True):
     return tables
 
 
-def clear_table(table_name, primary_column_name=COLUMNS[0], cursor_wrapper=None, dispose=True):
+def clear_table(table_name,
+                primary_column_name=COLUMNS[0],
+                cursor_wrapper=None,
+                dispose=True):
     """deletes everything in a table and resets the id (prim. key) indexing (if autoindexed)
 
     Arguments:
@@ -537,17 +564,15 @@ def clear_table(table_name, primary_column_name=COLUMNS[0], cursor_wrapper=None,
         cursor_wrapper = get_cursor()
     # delete all entries and then set indexing of the primary key (ie. code_tickets_seq) to 1
     sql_string = "DELETE FROM %s" % table_name
-    sql_string2 = "SELECT setval('%s_%s_seq', 1)" % (
-        table_name, primary_column_name)
+    sql_string2 = "SELECT setval('%s_%s_seq', 1)" % (table_name,
+                                                     primary_column_name)
     command_result = 1
     try:
         # don't commit yet
-        command_result = simple_sql_command(
-            sql_string, cursor_wrapper, False)
+        command_result = simple_sql_command(sql_string, cursor_wrapper, False)
         if primary_column_name == COLUMNS[0]:
             # commit now
-            simple_sql_command(
-                sql_string2, cursor_wrapper, dispose)
+            simple_sql_command(sql_string2, cursor_wrapper, dispose)
         else:
             # or commit now
             if dispose:
@@ -574,14 +599,17 @@ def drop_table(table_name, cursor_wrapper=None, dispose=True):
     sql_string = "DROP TABLE %s" % table_name
     command_result = 1
     try:
-        command_result = simple_sql_command(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_command(sql_string, cursor_wrapper,
+                                            dispose)
     except Exception as e:
         print(e)
     return command_result
 
 
-def create_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):
+def create_table(table_name,
+                 columns=COLUMNS,
+                 cursor_wrapper=None,
+                 dispose=True):
     """creates a table
 
     Arguments:
@@ -600,14 +628,17 @@ def create_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True)
         table_name, columns[0], columns[1], columns[2], columns[3])
     command_result = 1
     try:
-        command_result = simple_sql_command(
-            sql_string, cursor_wrapper, dispose)
+        command_result = simple_sql_command(sql_string, cursor_wrapper,
+                                            dispose)
     except Exception as e:
         print(e)
     return command_result
 
 
-def export_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True):
+def export_table(table_name,
+                 columns=COLUMNS,
+                 cursor_wrapper=None,
+                 dispose=True):
     """exports all the codes in a table
 
     Arguments:
@@ -625,8 +656,8 @@ def export_table(table_name, columns=COLUMNS, cursor_wrapper=None, dispose=True)
         sql_string = "SELECT * FROM %s" % table_name
         command_result = 1
         try:
-            command_result = simple_sql_select(
-                sql_string, cursor_wrapper, dispose)
+            command_result = simple_sql_select(sql_string, cursor_wrapper,
+                                               dispose)
         except Exception as e:
             print(e)
         if command_result != 1:
@@ -672,14 +703,28 @@ def create_backup(scheduled=True, database=DB_NAME):
     # make the latest backup unused
     rename_backups()
     try:
+        if not os.path.isdir(BACKUP_PATH):
+            os.mkdir(BACKUP_PATH)
         # create backup_latest.gz file and write into it from pg_dump command (dumps the whole database)
-        latest_file_path = os.path.join(
-            BACKUP_PATH, "backup_latest_%s.gz" % database)
-        with open(latest_file_path, "wb") as f:
-            pg_dump('-h', HOST, '-U', USER, database, _out=f)
+        latest_file_path = os.path.join(BACKUP_PATH,
+                                        "backup_latest_%s.gz" % database)
+        open(latest_file_path, "wb+").close()
+
+        popen = subprocess.Popen(
+            ("pg_dump -h %s -U %s -p %s -f %s -F tar -d %s -w" %
+             (HOST, USER, PORT, latest_file_path, DB_NAME)),
+            shell=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE)
+        result = popen.communicate()[0]
+        for line in result:
+            print(line)
         print("Backup successful! @ %s" % time.strftime(
             "%a, %d %b %Y %H:%M:%S", time.gmtime()))
         return 0
     except Exception as e:
         print(e)
         return 1
+
+
+create_backup(False)

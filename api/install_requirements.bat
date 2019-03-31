@@ -1,0 +1,1 @@
+pip3 install --user flask psycopg2 APScheduler pdfkit beautifulsoup4 qrcode
