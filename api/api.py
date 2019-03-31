@@ -5,6 +5,7 @@ import db_handler as handler
 import json
 import os
 from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory
+from flask_basicauth import BasicAuth
 from random import randint, choice
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
@@ -18,12 +19,12 @@ import logging
 import logging.handlers
 import auth_handler
 import tickets
+import base64
 
 # initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
 api.register_blueprint(error_handler.blueprint)
 file_scheduler = None
-
 
 LOGGING_TO_FILE = False
 
@@ -56,7 +57,9 @@ def get_random_filename():
         [string] -- [generated filename]
     """
 
-    return "".join(choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(randint(5, 21)))
+    return "".join(
+        choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+        for _ in range(randint(5, 21)))
 
 
 def delete_file(afile, filename=None):
@@ -171,12 +174,20 @@ def backup_db(**kwargs):
 
     # copy all the data from the backup to the new file
     with open(temporary_file_path, "wb") as temp_file:
-        with open(os.path.join(os.path.abspath("backups"), "backup_latest_%s.gz" % handler.DB_NAME), "rb") as backup_file:
+        with open(
+                os.path.join(
+                    os.path.abspath("backups"),
+                    "backup_latest_%s.gz" % handler.DB_NAME),
+                "rb") as backup_file:
             temp_file.writelines(backup_file.readlines())
 
     # add a job to the file scheduler to delete the file after 10 minutes
-    file_scheduler.add_job(delete_file, args=(temporary_file_path, temporary_file_name),
-                           id=temporary_file_name, trigger='interval', minutes=10)
+    file_scheduler.add_job(
+        delete_file,
+        args=(temporary_file_path, temporary_file_name),
+        id=temporary_file_name,
+        trigger='interval',
+        minutes=10)
 
     if response:
         return Response(status=500)
@@ -231,13 +242,15 @@ def add_entries(table_name, size, **kwargs):
             while len(codes) < size:
                 code = str(get_random_code(CODE_LENGTH))
                 # create a new code if the old one is in the table already
-                while ((code in codes) and (not handler.select_row(handler.COLUMNS[1], code, table_name, cursor_wrapper, False))):
+                while ((code in codes) and (not handler.select_row(
+                        handler.COLUMNS[1], code, table_name, cursor_wrapper,
+                        False))):
                     code = str(get_random_code(CODE_LENGTH))
                 codes.append(code)
             if codes != []:
                 # insert codes into the table
-                result = handler.add_entries(
-                    codes, table_name, cursor_wrapper, True)
+                result = handler.add_entries(codes, table_name, cursor_wrapper,
+                                             True)
             return Response(status=201) if not result else Response(status=304)
         except pool.PoolError as f:
             print(f)
@@ -300,10 +313,8 @@ def add_users(table_name, users, **kwargs):
     """
 
     result = 1
-    try:
-        users = list(users)
-    except Exception:
-        return Response(status=400)
+    if (not isinstance(users, list)):
+        users = [users]
     # check if users and table_name exist
     if isinstance(users, list) and table_name:
         result = handler.get_tables()
@@ -405,7 +416,6 @@ methods_ui = {
 # methods that can be called from /api/client/<method>
 methods_client = {
     "update_code": update_code,
-
 }
 
 # parameters required by each method
@@ -426,8 +436,16 @@ parameter_names = {
     "export_tickets": ["table_name", "file_format", "per_page"]
 }
 
-parameters = {"table_name": "", "size": "", "data": "",
-              "code": "", "users": "", "user": "", "file_format": "", "per_page": ""}
+parameters = {
+    "table_name": "",
+    "size": "",
+    "data": "",
+    "code": "",
+    "users": "",
+    "user": "",
+    "file_format": "",
+    "per_page": ""
+}
 
 optional_parameters = {"file_format": "pdf", "per_page": 8}
 
@@ -465,6 +483,21 @@ def ui(method):
         abort(405)
 
 
+@api.route("/api/client/check_login", methods=["POST"])
+def check_login(**kwargs):
+    try:
+        user = request.headers["Authorization"].replace("Basic ", "")
+        user = base64.b64decode(user).decode('utf-8').split(":")[0]
+        table_name = assigned_user_table(user)
+        print(table_name)
+        if table_name == 1:
+            return Response(status="401")
+        return Response(status="200")
+    except Exception as e:
+        print(e)
+        return Response(status="401")
+
+
 @api.route("/api/client/<method>", methods=["POST"])
 def client(method):
     """route for all client (mobile app) calls
@@ -495,11 +528,9 @@ def client(method):
         user = request.authorization("username")
         table_name = assigned_user_table(user)
         if table_name == 1:
-            return Response(status="403")
+            return Response(status="401")
         parameters["table_name"] = table_name
         return (methods_client[method](**parameters))
-    else:
-        abort(405)
 
 
 @api.route("/public/<filename>")
@@ -520,7 +551,8 @@ def get_file(filename):
     with open(filepath, "rb") as afile:
         result = Response(afile.read())
     result.headers["Content-Encoding"] = 'gzip'
-    result.headers["Content-Disposition"] = "attachment; filename=%s" % filename
+    result.headers[
+        "Content-Disposition"] = "attachment; filename=%s" % filename
     result.headers["Content-type"] = "text/csv"
     return result
 
@@ -533,14 +565,22 @@ if __name__ == "__main__":
     print("Started file scheduler.")
 
     tickets_backup_scheduler = BackgroundScheduler()
-    tickets_backup_scheduler.add_job(handler.create_backup, args=[True, handler.DB_NAME],
-                                     id="tickets_backup_scheduler", trigger='interval', hours=1)
+    tickets_backup_scheduler.add_job(
+        handler.create_backup,
+        args=[True, handler.DB_NAME],
+        id="tickets_backup_scheduler",
+        trigger='interval',
+        hours=1)
     tickets_backup_scheduler.start()
     print("Started tickets backup scheduler.")
 
     users_backup_scheduler = BackgroundScheduler()
-    users_backup_scheduler.add_job(handler.create_backup, args=[True, auth_handler.DB_NAME],
-                                   id="users_backup_scheduler", trigger='interval', hours=1)
+    users_backup_scheduler.add_job(
+        handler.create_backup,
+        args=[True, auth_handler.DB_NAME],
+        id="users_backup_scheduler",
+        trigger='interval',
+        hours=1)
     users_backup_scheduler.start()
     print("Started users backup scheduler.")
 
@@ -551,7 +591,7 @@ if __name__ == "__main__":
 
     # create pools for both handlers
     handler.pg_pool.get_pool()
-    auth_handler.get_pool_init()
+    auth_handler.pool_init()
 
     # if logging is true, log everything to api_log.log
     if LOGGING_TO_FILE:
@@ -567,4 +607,6 @@ if __name__ == "__main__":
     print("----------INIT----------")
 
     # start the server
+
+    basic_auth = BasicAuth(api)
     api.run(debug=True, port=5000, use_reloader=False, host="0.0.0.0")

@@ -13,22 +13,25 @@ PORT = "5432"
 HOST = "localhost"
 TABLE_NAME = "users"
 
-
 db_handler.AUTH_COLUMNS = COLUMNS
 db_handler.AUTH_DB_NAME = DB_NAME
 db_handler.AUTH_TABLE_NAME = TABLE_NAME
 
-
 pg_pool = db_handler.postgre_pool()
 
 
-def get_pool_init():
+def pool_init():
     global pg_pool
-    pg_pool.get_pool(maxconn=POOL_SIZE, user=USER,
-                     database=DB_NAME, port=PORT, host=HOST)
+    pg_pool.get_pool(
+        maxconn=POOL_SIZE, user=USER, database=DB_NAME, port=PORT, host=HOST)
 
 
-def add_users(users, table, cursor_wrapper=None, dispose=True, users_column=COLUMNS[0], tables_column=COLUMNS[1]):
+def add_users(users,
+              table,
+              cursor_wrapper=None,
+              dispose=True,
+              users_column=COLUMNS[0],
+              tables_column=COLUMNS[1]):
     """adds users to users database and assigns them the specified table
 
     Arguments:
@@ -52,8 +55,7 @@ def add_users(users, table, cursor_wrapper=None, dispose=True, users_column=COLU
     values_string = ""
     for i in range(len(users)):
         values_string += "("
-        values_string += ("('" + users[i] + "')" +
-                          ", ")
+        values_string += ("('" + users[i] + "')" + ", ")
         values_string += ("('" + table + "')")
         values_string += ")" + ", " * (i != len(users) - 1)
 
@@ -62,8 +64,8 @@ def add_users(users, table, cursor_wrapper=None, dispose=True, users_column=COLU
         TABLE_NAME, users_column, tables_column, values_string)
     command_result = 1
     try:
-        command_result = db_handler.simple_sql_command(
-            sql_string, cursor_wrapper, dispose)
+        command_result = db_handler.simple_sql_command(sql_string,
+                                                       cursor_wrapper, dispose)
     except Exception as e:
         print(e)
     return command_result
@@ -80,12 +82,12 @@ def find_corresponding_table(user):
     """
 
     cursor_wrapper = db_handler.get_cursor(pg_pool)
-    result = db_handler.select_row(
-        COLUMNS[0], user, TABLE_NAME, cursor_wrapper, True)
+    result = db_handler.select_row(COLUMNS[0], user, TABLE_NAME,
+                                   cursor_wrapper, True)
+    print(result)
     if result != 1:
-        return result[1][0]
+        return result[db_handler.COLUMNS[1]]
     else:
-        print("USER NOT IN DATABASE")
         return 1
 
 
@@ -108,6 +110,6 @@ def delete_all_users_for_table(table_name):
         [boolean] -- [False if successful else True]
     """
     cursor_wrapper = db_handler.get_cursor(pg_pool)
-    result = db_handler.delete_entry(
-        table_name, TABLE_NAME, COLUMNS[1], cursor_wrapper)
+    result = db_handler.delete_entry(table_name, TABLE_NAME, COLUMNS[1],
+                                     cursor_wrapper)
     return result

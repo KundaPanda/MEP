@@ -343,6 +343,7 @@ def simple_sql_select(sql_string, cursor_wrapper=None, dispose=True):
         cursor_wrapper = get_cursor()
         cursor = cursor_wrapper.cursor
     # try to execute the command up to 5 times if the first try fails
+    result = 1
     for i in range(5):
         try:
             cursor.execute(sql_string)
@@ -356,7 +357,7 @@ def simple_sql_select(sql_string, cursor_wrapper=None, dispose=True):
             if dispose:
                 cursor_wrapper.rollback()
             time.sleep(0.1)
-    if not i:
+    if not i and result != []:
         return result
     return 1
 
@@ -428,7 +429,6 @@ def check_and_update_code(value,
         # check if the value is even in the table
         current_data = select_row(columns[1], value, table_name,
                                   cursor_wrapper, False)
-        print(current_data)
         if current_data:
             # if yes, update it
             current_data["used"] = 0 if not current_data[
