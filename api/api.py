@@ -413,11 +413,6 @@ methods_ui = {
     "export_tickets": export_tickets,
 }
 
-# methods that can be called from /api/client/<method>
-methods_client = {
-    "update_code": update_code,
-}
-
 # parameters required by each method
 # TODO Maybe pass whole parameters dictionary and get the desired values from there?
 parameter_names = {
@@ -477,7 +472,7 @@ def ui(method):
                     continue
                 else:
                     abort(400)
-            parameters[parameter] = post_data[parameter]
+            parameters[parameter] = str(post_data[parameter])
         return (methods_ui[method](**parameters))
     else:
         abort(405)
@@ -489,7 +484,6 @@ def check_login(**kwargs):
         user = request.headers["Authorization"].replace("Basic ", "")
         user = base64.b64decode(user).decode('utf-8').split(":")[0]
         table_name = assigned_user_table(user)
-        print(table_name)
         if table_name == 1:
             return Response(status="401")
         return Response(status="200")
@@ -498,8 +492,8 @@ def check_login(**kwargs):
         return Response(status="401")
 
 
-@api.route("/api/client/<method>", methods=["POST"])
-def client(method):
+@api.route("/api/client", methods=["POST"])
+def client(**kwargs):
     """route for all client (mobile app) calls
 
     Arguments:
@@ -509,28 +503,29 @@ def client(method):
         [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
     # rear input json and initialize table_name for the user
+    method = "update_code"
     try:
-        post_data = request.get_json()
-        post_dict = (json.loads(post_data))
-        post_dict["table_name"] = None
-        post_data = json.dumps(post_dict)
-    except Exception:
+        post_data = str(request.get_json()).replace("\'", "\"")
+        post_data = json.loads(post_data)
+        post_data['table_name'] = None
+    except Exception as e:
+        print(e)
         abort(400)
 
     # check if all required fields are filled
-    if method in methods_client.keys():
-        for parameter in parameter_names[method]:
-            if parameter not in post_data:
-                abort(400)
-            parameters[parameter] = post_data[parameter]
-
-        # find the assigned table, abort if no assignment is found else call the method
-        user = request.authorization("username")
-        table_name = assigned_user_table(user)
-        if table_name == 1:
-            return Response(status="401")
-        parameters["table_name"] = table_name
-        return (methods_client[method](**parameters))
+    for parameter in parameter_names[method]:
+        if parameter not in post_data:
+            print("Not enough parameters")
+            abort(400)
+        parameters[parameter] = post_data[parameter]
+    # find the assigned table, abort if no assignment is found else call the method
+    user = request.headers["Authorization"].replace("Basic ", "")
+    user = base64.b64decode(user).decode('utf-8').split(":")[0]
+    table_name = assigned_user_table(user)
+    if table_name == 1:
+        return Response(status="401")
+    parameters["table_name"] = table_name
+    return (update_code(**parameters))
 
 
 @api.route("/public/<filename>")

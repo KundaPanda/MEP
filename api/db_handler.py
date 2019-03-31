@@ -429,7 +429,7 @@ def check_and_update_code(value,
         # check if the value is even in the table
         current_data = select_row(columns[1], value, table_name,
                                   cursor_wrapper, False)
-        if current_data:
+        if current_data != 1:
             # if yes, update it
             current_data["used"] = 0 if not current_data[
                 "used"] else current_data["used"]
