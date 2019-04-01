@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#ffa000</color>
-    <color name="colorPrimaryDark">#c67100</color>
-    <color name="colorPrimaryLight">#ffd149</color>
-    <color name="colorAccent">#ac0800</color>
-    <color name="colorSuccess">#00701a</color>
+    <color name="colorPrimary">#388697</color>
+    <color name="colorPrimaryDark">#255957</color>
+	<color name="colorAccent">#f0544f</color>
+
+    <color name="colorPrimaryLight">#388697</color>
+    <color name="colorPrimaryLightDark">#694873</color>
+    <color name="colorLightAccent">#ffc857</color>
+
+	<color name="colorSuccess">#00701a</color>
     <color name="colorFail">#ab000d</color>
 </resources>

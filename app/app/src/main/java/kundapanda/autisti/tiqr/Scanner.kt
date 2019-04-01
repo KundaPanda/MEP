@@ -2,7 +2,6 @@ package kundapanda.autisti.tiqr
 
 import android.Manifest
 import android.Manifest.permission.CAMERA
-import android.support.v7.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,9 +13,9 @@ import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
 import android.support.design.widget.Snackbar.LENGTH_INDEFINITE
 import android.support.v4.content.ContextCompat
-import android.support.v4.content.ContextCompat.startActivity
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.util.Log
@@ -51,6 +50,36 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
     private lateinit var detector: BarcodeDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
+        val currentTheme = themeToken.getString("theme", "dark")
+        val switch = themeToken.getBoolean("switch", false)
+        when (currentTheme) {
+            ("dark") -> {
+                if (switch) {
+                    Log.d("THEME", "light")
+                    setTheme(R.style.AppTheme_Light)
+                    themeToken.edit().putString("theme", "light").apply()
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                } else {
+                    setTheme(R.style.AppTheme_Dark)
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                }
+            }
+            ("light") -> {
+                if (switch) {
+                    Log.d("THEME", "dark")
+                    setTheme(R.style.AppTheme_Dark)
+                    themeToken.edit().putString("theme", "dark").apply()
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                } else {
+                    setTheme(R.style.AppTheme_Light)
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                }
+
+            }
+        }
+        themeToken.edit().putBoolean("switch", false).apply()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanner)
         setSupportActionBar(toolbar)
@@ -113,19 +142,19 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             }
 
             override fun receiveDetections(detections: Detector.Detections<Barcode>) {
-                val handler = Handler(Looper.getMainLooper())
-
-                val loginToken = getSharedPreferences("login", Context.MODE_PRIVATE)
-                val serverToken = getSharedPreferences("server", Context.MODE_PRIVATE)
-                val userName = loginToken.getString("username", "")!!
-                val userPassword = loginToken.getString("password", "")!!
-                val serverAddress = serverToken.getString("address", "")!!
-                val serverPort = serverToken.getString("port", "")!!
-                val serverProtocol = serverToken.getString("protocol", "")!!
-                val serverUrl = "$serverAddress:$serverPort"
-
                 val barCodes: SparseArray<Barcode> = detections.detectedItems
                 if (barCodes.size() > 0) {
+                    val handler = Handler(Looper.getMainLooper())
+
+                    val loginToken = getSharedPreferences("login", Context.MODE_PRIVATE)
+                    val serverToken = getSharedPreferences("server", Context.MODE_PRIVATE)
+                    val userName = loginToken.getString("username", "")!!
+                    val userPassword = loginToken.getString("password", "")!!
+                    val serverAddress = serverToken.getString("address", "")!!
+                    val serverPort = serverToken.getString("port", "")!!
+                    val serverProtocol = serverToken.getString("protocol", "")!!
+                    val serverUrl = "$serverAddress:$serverPort"
+
                     handler.post {
                         camera_view.release()
                         detector.release()
@@ -233,9 +262,15 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         when (item.itemId) {
-            R.id.action_settings -> return true
-            else -> return super.onOptionsItemSelected(item)
+            (R.id.action_settings) -> return true
+            (R.id.mode_toggle) -> {
+                // To change theme just put your theme id.
+                val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
+                themeToken.edit().putBoolean("switch", true).apply()
+                recreate()
+            }
         }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onRequestPermissionsResult(

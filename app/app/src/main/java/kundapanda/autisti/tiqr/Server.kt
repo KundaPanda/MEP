@@ -15,6 +15,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.util.Log
 import android.util.Patterns
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.webkit.URLUtil
@@ -23,6 +25,7 @@ import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_server.*
 import java.net.MalformedURLException
 import java.net.UnknownHostException
+
 
 /**
  * A login screen that offers login via email/password.
@@ -42,9 +45,39 @@ class Server : AppCompatActivity() {
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
+        val currentTheme = themeToken.getString("theme", "dark")
+        val switch = themeToken.getBoolean("switch", false)
+        when (currentTheme) {
+            ("dark") -> {
+                if (switch) {
+                    Log.d("THEME", "light")
+                    setTheme(R.style.AppTheme_Light)
+                    themeToken.edit().putString("theme", "light").apply()
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                } else {
+                    setTheme(R.style.AppTheme_Dark)
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                }
+            }
+            ("light") -> {
+                if (switch) {
+                    Log.d("THEME", "dark")
+                    setTheme(R.style.AppTheme_Dark)
+                    themeToken.edit().putString("theme", "dark").apply()
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                } else {
+                    setTheme(R.style.AppTheme_Light)
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                }
+
+            }
+        }
+        themeToken.edit().putBoolean("switch", false).apply()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_server)
-        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+//        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 
         managePermissions = ManagePermissions(this, permissionsList, permissionsRequestCode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -52,10 +85,14 @@ class Server : AppCompatActivity() {
         }
 
         val token = getSharedPreferences("server", Context.MODE_PRIVATE)
+        var protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "")
 
-        if (getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "") == "") {
+        if (protocol == "") {
             getSharedPreferences("server", Context.MODE_PRIVATE).edit().putString("protocol", "http://").apply()
+            protocol = "http://"
         }
+
+        protocol_mode_switch.isChecked = (protocol == "http://")
 
         server_id.setOnEditorActionListener(TextView.OnEditorActionListener { _, id, _ ->
             if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
@@ -154,6 +191,24 @@ class Server : AppCompatActivity() {
 
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.navbar_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        val id = item!!.itemId
+        when (id) {
+            (R.id.mode_toggle) -> {
+                // To change theme just put your theme id.
+                val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
+                themeToken.edit().putBoolean("switch", true).apply()
+                recreate()
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>,
         grantResults: IntArray
@@ -244,7 +299,7 @@ class Server : AppCompatActivity() {
                 val protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "https://")!!
                 val requestHandler = RequestHandler()
                 requestHandler.setTransmissionProtocol(protocol)
-                val response = requestHandler.checkServerAvailable(serverCheckAddress,serverCheckPort.toInt())
+                val response = requestHandler.checkServerAvailable(serverCheckAddress, serverCheckPort.toInt())
                 if (response) {
                     Log.d("CONNECT", "connection successful")
                     return true
