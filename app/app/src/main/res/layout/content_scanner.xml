@@ -11,28 +11,13 @@
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
 		tools:layout_editor_absoluteY="36dp"
-		android:id="@+id/scanner_view">
-
-	<TextView
-			android:text="@string/prompt_login"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:id="@+id/scan_results"
-			app:layout_constraintTop_toTopOf="parent"
-			app:layout_constraintRight_toRightOf="parent"
-			app:layout_constraintLeft_toLeftOf="parent"
-			android:layout_marginTop="8dp"
-			android:layout_marginRight="4dp"
-			android:layout_marginLeft="4dp"
-			android:gravity="center_horizontal|top"
-			android:layout_marginBottom="4dp"
-			android:fontFamily="sans-serif-medium"
-			android:textSize="18sp"/>
+		android:id="@+id/scanner_view"
+		android:gravity="center">
 
 	<kundapanda.autisti.tiqr.google.CameraSourcePreview
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:id="@+id/camera_view">
+			android:id="@+id/camera_view"
+			android:layout_height="match_parent">
 
 		<kundapanda.autisti.tiqr.google.GraphicOverlay
 				android:layout_width="match_parent"

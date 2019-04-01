@@ -1,13 +1,13 @@
 <resources>
 	<string name="app_name">TiQR</string>
 	<!-- Strings related to login -->
-	<string name="prompt_login">Login</string>
+	<string name="prompt_login">Username</string>
 	<string name="prompt_password">Password</string>
 	<string name="action_sign_in">Sign in</string>
 	<string name="action_sign_in_short">Sign in</string>
 	<string name="error_invalid_login">Invalid login</string>
 	<string name="error_invalid_password">This password is too short</string>
-	<string name="error_incorrect_password">This password is incorrect</string>
+	<string name="error_incorrect_password">This password or username is incorrect</string>
 
 	<string name="action_server">Enter server address</string>
 	<string name="action_server_port">Enter server port (leave blank for default)</string>
@@ -35,4 +35,7 @@
 	<string name="protocol_mode_switch">Connection type</string>
 	<string name="protocol_mode_http">HTTP</string>
 	<string name="protocol_mode_https">HTTPS</string>
+	<string name="action_autologin_checkbox">Enable autologin</string>
+	<string name="action_autoconnect_checkbox">Enable autoconnect</string>
+	<string name="action_login_to_server">Change server address</string>
 </resources>

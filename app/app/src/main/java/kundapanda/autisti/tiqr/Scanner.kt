@@ -2,25 +2,27 @@ package kundapanda.autisti.tiqr
 
 import android.Manifest
 import android.Manifest.permission.CAMERA
-import android.app.ProgressDialog.show
+import android.support.v7.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
 import android.support.design.widget.Snackbar.LENGTH_INDEFINITE
 import android.support.v4.content.ContextCompat
+import android.support.v4.content.ContextCompat.startActivity
 import android.support.v4.view.GravityCompat
-import android.support.v4.view.accessibility.AccessibilityEventCompat.setAction
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AppCompatDelegate
+import android.util.Log
 import android.util.SparseArray
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.TextView
 import android.widget.Toast
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.CameraSource.CAMERA_FACING_BACK
@@ -33,7 +35,7 @@ import kotlinx.android.synthetic.main.content_scanner.*
 import kotlinx.android.synthetic.main.nav_header_scanner.*
 import org.json.JSONException
 import org.json.JSONObject
-import kotlin.math.log
+
 
 class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -45,11 +47,15 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.INTERNET
     )
+    private lateinit var cameraSource: CameraSource
+    private lateinit var detector: BarcodeDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanner)
         setSupportActionBar(toolbar)
+        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+
 
         val toggle = ActionBarDrawerToggle(
             this, scanner_drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
@@ -58,57 +64,89 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
+        fab.setOnClickListener {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post { setupBarcodeDetector() }
         }
 
-        val detector = BarcodeDetector.Builder(applicationContext)
+        setupBarcodeDetector()
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        camera_view.stop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        camera_view.start(cameraSource, camera_view_overlay)
+    }
+
+    private fun setupBarcodeDetector() {
+
+
+        detector = BarcodeDetector.Builder(applicationContext)
             .setBarcodeFormats(Barcode.QR_CODE)
             .build()
 
         if (!detector!!.isOperational) {
-            scan_results.text = R.string.scanner_non_functional.toString()
+            val snackbar = Snackbar.make(
+                this.currentFocus!!,
+                "This application cannot function properly without requested permissions.",
+                LENGTH_INDEFINITE
+            )
+            snackbar.setAction("Dismiss", { snackbar.dismiss() }).show()
             return
         }
 
 
-        val cameraSource = CameraSource.Builder(this, detector)
+        cameraSource = CameraSource.Builder(this, detector)
             .setFacing(CAMERA_FACING_BACK)
             .setAutoFocusEnabled(true)
             .setRequestedFps(30.toFloat())
             .build()
 
+
         detector.setProcessor(object : Detector.Processor<Barcode> {
             override fun release() {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
             }
 
             override fun receiveDetections(detections: Detector.Detections<Barcode>) {
+                val handler = Handler(Looper.getMainLooper())
+
                 val loginToken = getSharedPreferences("login", Context.MODE_PRIVATE)
                 val serverToken = getSharedPreferences("server", Context.MODE_PRIVATE)
                 val userName = loginToken.getString("username", "")!!
                 val userPassword = loginToken.getString("password", "")!!
                 val serverAddress = serverToken.getString("address", "")!!
                 val serverPort = serverToken.getString("port", "")!!
+                val serverProtocol = serverToken.getString("protocol", "")!!
                 val serverUrl = "$serverAddress:$serverPort"
 
                 val barCodes: SparseArray<Barcode> = detections.detectedItems
                 if (barCodes.size() > 0) {
+                    handler.post {
+                        camera_view.release()
+                        detector.release()
+                    }
+
                     val scannedCode = barCodes.valueAt(0).rawValue
                     Snackbar.make(scanner_view, "Received code: $scannedCode", Snackbar.LENGTH_LONG)
                         .show()
                     val request = RequestHandler()
+                    request.setTransmissionProtocol(serverProtocol)
                     request.setBasicAuth(userName, userPassword)
-                    val response = request.sendPostRequest(serverAddress, scannedCode)
+                    val response = request.sendPostRequest("$serverUrl/api/client", scannedCode)
                     var responseMessage: String? = null
-                    var responseColor: Int? = null
+                    var responseStatus = 0
+                    Log.d("RESPONSE", response)
                     if (response == "1") {
                         responseMessage = "$scannedCode is not a valid code."
-                        responseColor = Color.MAGENTA
+                        responseStatus = 1
                     } else if (response == "2") {
-                        responseMessage = "Error connecting to the server."
-                        responseColor = Color.MAGENTA
+                        responseMessage = "Error communicating with the server."
+                        responseStatus = 2
                     } else {
                         try {
                             val jsonMessage = JSONObject(response)
@@ -117,10 +155,9 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                                     "Code $scannedCode has already been used ${jsonMessage.getInt("used")} times. Latest check was at: ${jsonMessage.getString(
                                         "time"
                                     )}."
-                                responseColor = Color.RED
+                                responseStatus = 1
                             } else {
                                 responseMessage = "Code $scannedCode is valid."
-                                responseColor = Color.GREEN
                             }
                         } catch (e: JSONException) {
                             e.printStackTrace()
@@ -128,19 +165,30 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                     }
 
                     if (responseMessage != null) {
-                        val snackBar = Snackbar.make(scanner_view, responseMessage, LENGTH_INDEFINITE)
-                            .setActionTextColor(Color.MAGENTA)
-                        val snackBarView = snackBar.view.findViewById(R.id.snackbar_text) as TextView
-                        snackBarView.setTextColor(responseColor!!)
-                        snackBar.setAction("Dismiss", { scanner_view -> snackBar.dismiss() })
-                            .show()
+
+                        when (responseStatus) {
+                            0 -> (R.style.AlertDialogSuccess)
+                            1 -> (R.style.AlertDialogFail)
+                            2 -> (R.style.AlertDialogError)
+                        }
+                        handler.post {
+                            val alertDialog = AlertDialog.Builder(this@Scanner, responseStatus).create()
+                            alertDialog.setTitle("Reader response")
+                            alertDialog.setMessage(responseMessage)
+                            alertDialog.setButton(
+                                AlertDialog.BUTTON_NEUTRAL, "OK"
+                            ) { dialog, which -> dialog.dismiss() }
+                            alertDialog.show()
+                        }
+
                     } else {
                         val snackBar = Snackbar.make(scanner_view, "Unable to parse JSON response.", LENGTH_INDEFINITE)
                         snackBar.setAction("Dismiss", { scanner_view -> snackBar.dismiss() }).show()
                     }
-                    TODO("not yet implemented")
+
                 }
             }
+
         })
 
         if (ContextCompat.checkSelfPermission(this, CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -148,7 +196,6 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         } else {
             Snackbar.make(this.currentFocus!!, "Camera permission not granted", Snackbar.LENGTH_LONG).show()
         }
-
     }
 
     override fun onBackPressed() {
@@ -156,7 +203,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             scanner_drawer_layout.closeDrawer(GravityCompat.START)
         } else {
             super.onBackPressed()
-            camera_view.release()
+            camera_view.stop()
         }
     }
 
@@ -220,12 +267,11 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             R.id.nav_change_login -> {
                 val token = getSharedPreferences("login", Context.MODE_PRIVATE)
                 val editor = token.edit()
-                editor.putString("username", "")
-                editor.putString("password", "")
+                editor.putBoolean("autoLogin", false)
                 editor.apply()
                 intent = Intent(this, Login::class.java)
                 startActivity(intent)
-                camera_view.release()
+                camera_view.stop()
                 finish()
             }
             R.id.nav_request_permissions -> {
@@ -237,11 +283,11 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             R.id.nav_change_server -> {
                 val token = getSharedPreferences("server", Context.MODE_PRIVATE)
                 val editor = token.edit()
-                editor.putString("server", "")
+                editor.putBoolean("autoConnect", false)
                 editor.apply()
                 intent = Intent(this, Server::class.java)
                 startActivity(intent)
-                camera_view.release()
+                camera_view.stop()
                 finish()
             }
             R.id.nav_manage -> {

@@ -3,6 +3,7 @@ package kundapanda.autisti.tiqr.google
 import android.Manifest.permission.CAMERA
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.content.res.Configuration
 import android.support.design.widget.Snackbar
@@ -86,23 +87,26 @@ class CameraSourcePreview(private val mContext: Context, attrs: AttributeSet) : 
     @Throws(IOException::class)
     private fun startIfReady() {
         if (mStartRequested && mSurfaceAvailable) {
-            mCameraSource!!.start(mSurfaceView.holder)
-            if (mOverlay != null) {
-                val size = mCameraSource!!.previewSize
-                val min = Math.min(size.width, size.height)
-                val max = Math.max(size.width, size.height)
-                if (isPortraitMode) {
-                    // Swap width and height sizes when in portrait, since it will be rotated by
-                    // 90 degrees
-                    mOverlay!!.setCameraInfo(min, max, mCameraSource!!.cameraFacing)
-                } else {
-                    mOverlay!!.setCameraInfo(max, min, mCameraSource!!.cameraFacing)
+            if (ContextCompat.checkSelfPermission(this.mContext, CAMERA)
+                == PERMISSION_GRANTED
+            ) {
+                mCameraSource!!.start(mSurfaceView.holder)
+                if (mOverlay != null) {
+                    val size = mCameraSource!!.previewSize
+                    val min = Math.min(size.width, size.height)
+                    val max = Math.max(size.width, size.height)
+                    if (isPortraitMode) {
+                        // Swap width and height sizes when in portrait, since it will be rotated by
+                        // 90 degrees
+                        mOverlay!!.setCameraInfo(min, max, mCameraSource!!.cameraFacing)
+                    } else {
+                        mOverlay!!.setCameraInfo(max, min, mCameraSource!!.cameraFacing)
+                    }
+                    mOverlay!!.clear()
                 }
-                mOverlay!!.clear()
+                mStartRequested = false
             }
-            mStartRequested = false
         }
-
     }
 
     private inner class SurfaceCallback : SurfaceHolder.Callback {
@@ -117,10 +121,11 @@ class CameraSourcePreview(private val mContext: Context, attrs: AttributeSet) : 
         }
 
         override fun surfaceDestroyed(surface: SurfaceHolder) {
+            stop()
             mSurfaceAvailable = false
         }
 
-        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {        }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

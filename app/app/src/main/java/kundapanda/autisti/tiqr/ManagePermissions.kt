@@ -23,7 +23,7 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
         if (isPermissionsGranted() != PackageManager.PERMISSION_GRANTED) {
             requestPermissions()
         } else {
-            Toast.makeText(activity, "Permissions already granted.", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Permissions already granted.", Toast.LENGTH_SHORT).show()
         }
     }
 

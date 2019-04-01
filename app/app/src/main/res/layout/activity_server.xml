@@ -64,6 +64,16 @@
 						android:layout_weight="1"/>
 			</android.support.design.widget.TextInputLayout>
 
+			<CheckBox
+					android:text="@string/action_autoconnect_checkbox"
+					android:layout_width="match_parent"
+					android:layout_height="0dp"
+					android:id="@+id/autoconnect_checkbox"
+					android:layout_weight="1"
+					android:gravity="start|center_vertical"
+					android:checked="true"
+					/>
+
 			<Switch
 					android:text="@string/protocol_mode_https"
 					android:layout_width="match_parent"
@@ -80,8 +90,7 @@
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
 					android:layout_marginTop="16dp"
-					android:text="@string/action_server_confirm"
-					android:textStyle="bold"/>
+					android:text="@string/action_server_confirm"/>
 
 		</LinearLayout>
 	</ScrollView>

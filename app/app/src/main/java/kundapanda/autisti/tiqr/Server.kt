@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.design.widget.Snackbar.LENGTH_INDEFINITE
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AppCompatDelegate
 import android.util.Log
 import android.util.Patterns
 import android.view.View
@@ -19,12 +20,8 @@ import android.view.inputmethod.EditorInfo
 import android.webkit.URLUtil
 import android.widget.TextView
 import android.widget.Toast
-import kotlinx.android.synthetic.main.activity_login.*
 import kotlinx.android.synthetic.main.activity_server.*
-import java.io.IOException
 import java.net.MalformedURLException
-import java.net.Socket
-import java.net.URL
 import java.net.UnknownHostException
 
 /**
@@ -46,13 +43,14 @@ class Server : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_server)
+        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 
         managePermissions = ManagePermissions(this, permissionsList, permissionsRequestCode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             managePermissions.checkPermissions()
         }
 
-        setContentView(R.layout.activity_server)
         val token = getSharedPreferences("server", Context.MODE_PRIVATE)
 
         if (getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "") == "") {
@@ -67,7 +65,7 @@ class Server : AppCompatActivity() {
             false
         })
 
-        protocol_mode_switch.setOnClickListener(fun (view: View){
+        protocol_mode_switch.setOnClickListener(fun(view: View) {
             val editor = getSharedPreferences("server", Context.MODE_PRIVATE).edit()
             if (protocol_mode_switch.isChecked) {
                 editor.putString("protocol", "https://")
@@ -81,10 +79,17 @@ class Server : AppCompatActivity() {
 
         val serverStr = token.getString("address", "")!!
         val serverPortStr = token.getString("port", "")!!
+        val autoConnect = token.getBoolean("autoConnect", false)
+        val serverProtocol = token.getString("protocol", "https://")
+
+        protocol_mode_switch.isChecked = (serverProtocol == "https://")
 
         if (serverStr != "" && serverPortStr != "") {
-            Log.d("CONFIRM", "SERVER: $serverStr, PORT: $serverPortStr")
-            attemptConfirm(serverStr, serverPortStr)
+            server_id.text.insert(server_id.selectionStart, serverStr)
+            server_port_id.text.insert(server_port_id.selectionStart, serverPortStr)
+            if (autoConnect) {
+                attemptConfirm(serverStr, serverPortStr)
+            }
         }
 
         sever_confirm_button.setOnClickListener { attemptConfirm() }
@@ -235,18 +240,22 @@ class Server : AppCompatActivity() {
 
         override fun doInBackground(vararg params: Void): Boolean? {
 
-            val protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "HTTPS")!!
-
             try {
-                Socket(serverCheckAddress, serverCheckPort.toInt())
+                val protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "https://")!!
+                val requestHandler = RequestHandler()
+                requestHandler.setTransmissionProtocol(protocol)
+                val response = requestHandler.checkServerAvailable(serverCheckAddress,serverCheckPort.toInt())
+                if (response) {
+                    Log.d("CONNECT", "connection successful")
+                    return true
+                }
             } catch (e: UnknownHostException) {
                 e.printStackTrace()
-                return false
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 e.printStackTrace()
-                return false
             }
-            return true
+            Log.d("CONNECT", "connection unsuccessful")
+            return false
         }
 
         override fun onPostExecute(success: Boolean?) {
@@ -255,14 +264,15 @@ class Server : AppCompatActivity() {
 
             if (success!!) {
                 val token = getSharedPreferences("server", Context.MODE_PRIVATE)
+                val editor = token.edit()
                 if ((token.getString("address", "") != serverCheckAddress)
                     || (token.getString("port", "") != serverCheckPort)
                 ) {
-                    val editor = token.edit()
                     editor.putString("address", serverCheckAddress)
                     editor.putString("port", serverCheckPort)
-                    editor.apply()
                 }
+                editor.putBoolean("autoConnect", autoconnect_checkbox.isChecked)
+                editor.apply()
 
                 val intent = Intent(this@Server, Login::class.java)
                 startActivity(intent)
