@@ -32,11 +32,22 @@ import kotlinx.android.synthetic.main.activity_scanner.*
 import kotlinx.android.synthetic.main.app_bar_scanner.*
 import kotlinx.android.synthetic.main.content_scanner.*
 import kotlinx.android.synthetic.main.nav_header_scanner.*
+import kundapanda.autisti.tiqr.google.ThemeEnum
+import kundapanda.autisti.tiqr.google.switchTheme
 import org.json.JSONException
 import org.json.JSONObject
 
 
 class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+
+    val Dark = "dark"
+    val Light = "light"
+
+    enum class Themes {
+        Dark,
+        Light
+    }
+
 
 
     private val permissionsRequestCode = 200
@@ -51,34 +62,14 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-        val currentTheme = themeToken.getString("theme", "dark")
-        val switch = themeToken.getBoolean("switch", false)
-        when (currentTheme) {
-            ("dark") -> {
-                if (switch) {
-                    Log.d("THEME", "light")
-                    setTheme(R.style.AppTheme_Light)
-                    themeToken.edit().putString("theme", "light").apply()
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                } else {
-                    setTheme(R.style.AppTheme_Dark)
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                }
-            }
-            ("light") -> {
-                if (switch) {
-                    Log.d("THEME", "dark")
-                    setTheme(R.style.AppTheme_Dark)
-                    themeToken.edit().putString("theme", "dark").apply()
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                } else {
-                    setTheme(R.style.AppTheme_Light)
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                }
-
-            }
+        val currentTheme = themeToken.getString("theme", Themes.Dark.toString())
+        if (currentTheme == Themes.Dark.toString()) {
+            setTheme(R.style.AppTheme_Light)
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        } else {
+            setTheme(R.style.AppTheme_Dark)
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
-        themeToken.edit().putBoolean("switch", false).apply()
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanner)
@@ -266,8 +257,9 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             (R.id.mode_toggle) -> {
                 // To change theme just put your theme id.
                 val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-                themeToken.edit().putBoolean("switch", true).apply()
-                recreate()
+                val currentTheme = themeToken.getString("theme", Themes.Dark.toString())
+                val themeEnum = ThemeEnum
+                switchTheme(this, this)
             }
         }
         return super.onOptionsItemSelected(item)
