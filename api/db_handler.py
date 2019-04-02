@@ -725,6 +725,3 @@ def create_backup(scheduled=True, database=DB_NAME):
     except Exception as e:
         print(e)
         return 1
-
-
-create_backup(False)

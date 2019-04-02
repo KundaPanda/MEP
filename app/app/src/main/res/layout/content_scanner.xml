@@ -12,17 +12,23 @@
 		android:layout_height="match_parent"
 		tools:layout_editor_absoluteY="36dp"
 		android:id="@+id/scanner_view"
-		android:gravity="center">
+		android:gravity="center"
+		android:padding="5dp"
+		>
 
 	<kundapanda.autisti.tiqr.google.CameraSourcePreview
 			android:layout_width="match_parent"
 			android:id="@+id/camera_view"
-			android:layout_height="match_parent">
+			android:layout_height="wrap_content"
+			android:textAlignment="center"
+			android:layout_gravity="center"
+			android:foregroundGravity="center">
 
 		<kundapanda.autisti.tiqr.google.GraphicOverlay
 				android:layout_width="match_parent"
 				android:layout_height="match_parent"
-				android:id="@+id/camera_view_overlay"/>
+				android:id="@+id/camera_view_overlay"
+				android:textAlignment="center"/>
 
 	</kundapanda.autisti.tiqr.google.CameraSourcePreview>
 
