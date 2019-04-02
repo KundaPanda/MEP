@@ -45,35 +45,14 @@ class Server : AppCompatActivity() {
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-        val currentTheme = themeToken.getString("theme", "dark")
-        val switch = themeToken.getBoolean("switch", false)
-        when (currentTheme) {
-            ("dark") -> {
-                if (switch) {
-                    Log.d("THEME", "light")
-                    setTheme(R.style.AppTheme_Light)
-                    themeToken.edit().putString("theme", "light").apply()
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                } else {
-                    setTheme(R.style.AppTheme_Dark)
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                }
-            }
-            ("light") -> {
-                if (switch) {
-                    Log.d("THEME", "dark")
-                    setTheme(R.style.AppTheme_Dark)
-                    themeToken.edit().putString("theme", "dark").apply()
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                } else {
-                    setTheme(R.style.AppTheme_Light)
-                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                }
-
-            }
+        val currentTheme = ThemeEnum.getTheme(this)
+        if (currentTheme == ThemeEnum.Light) {
+            setTheme(R.style.AppTheme_Light)
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        } else {
+            setTheme(R.style.AppTheme_Dark)
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
-        themeToken.edit().putBoolean("switch", false).apply()
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_server)
@@ -199,12 +178,7 @@ class Server : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         val id = item!!.itemId
         when (id) {
-            (R.id.mode_toggle) -> {
-                // To change theme just put your theme id.
-                val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-                themeToken.edit().putBoolean("switch", true).apply()
-                recreate()
-            }
+            (R.id.mode_toggle) -> ThemeEnum.switchTheme(this, this)
         }
         return super.onOptionsItemSelected(item)
     }

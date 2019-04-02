@@ -20,35 +20,27 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.util.Log
 import android.util.SparseArray
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.CameraSource.CAMERA_FACING_BACK
 import com.google.android.gms.vision.Detector
 import com.google.android.gms.vision.barcode.Barcode
 import com.google.android.gms.vision.barcode.BarcodeDetector
+import kotlinx.android.synthetic.main.activity_login.view.*
 import kotlinx.android.synthetic.main.activity_scanner.*
 import kotlinx.android.synthetic.main.app_bar_scanner.*
 import kotlinx.android.synthetic.main.content_scanner.*
 import kotlinx.android.synthetic.main.nav_header_scanner.*
-import kundapanda.autisti.tiqr.google.ThemeEnum
-import kundapanda.autisti.tiqr.google.switchTheme
+import kotlinx.android.synthetic.main.nav_header_scanner.view.*
 import org.json.JSONException
 import org.json.JSONObject
 
 
 class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
-
-    val Dark = "dark"
-    val Light = "light"
-
-    enum class Themes {
-        Dark,
-        Light
-    }
-
-
 
     private val permissionsRequestCode = 200
     private lateinit var managePermissions: ManagePermissions
@@ -61,9 +53,8 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
     private lateinit var detector: BarcodeDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-        val currentTheme = themeToken.getString("theme", Themes.Dark.toString())
-        if (currentTheme == Themes.Dark.toString()) {
+        val currentTheme = ThemeEnum.getTheme(this)
+        if (currentTheme == ThemeEnum.Light) {
             setTheme(R.style.AppTheme_Light)
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         } else {
@@ -91,6 +82,22 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
 
         setupBarcodeDetector()
 
+
+        val loginToken = getSharedPreferences("login", Context.MODE_PRIVATE)
+        val serverToken = getSharedPreferences("server", Context.MODE_PRIVATE)
+        val userName = loginToken.getString("username", "")!!
+        val serverAddress = serverToken.getString("address", "")!!
+        val serverPort = serverToken.getString("port", "")!!
+        val serverUrl = "$serverAddress:$serverPort"
+
+        if (userName != "") {
+            nav_view.getHeaderView(0).nav_user_login.text = userName
+        }
+
+        if (serverAddress != "" && serverPort != "") {
+            nav_view.getHeaderView(0).nav_server_address.text = serverUrl
+        }
+
     }
 
     override fun onPause() {
@@ -102,6 +109,8 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         super.onResume()
         camera_view.start(cameraSource, camera_view_overlay)
     }
+
+
 
     private fun setupBarcodeDetector() {
 
@@ -185,14 +194,14 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                     }
 
                     if (responseMessage != null) {
-
-                        when (responseStatus) {
+                        val responseStyle = when (responseStatus) {
                             0 -> (R.style.AlertDialogSuccess)
                             1 -> (R.style.AlertDialogFail)
                             2 -> (R.style.AlertDialogError)
+                            else -> R.style.AlertDialogError
                         }
                         handler.post {
-                            val alertDialog = AlertDialog.Builder(this@Scanner, responseStatus).create()
+                            val alertDialog = AlertDialog.Builder(this@Scanner, responseStyle).create()
                             alertDialog.setTitle("Reader response")
                             alertDialog.setMessage(responseMessage)
                             alertDialog.setButton(
@@ -229,21 +238,8 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.scanner, menu)
-        val loginToken = getSharedPreferences("login", Context.MODE_PRIVATE)
-        val serverToken = getSharedPreferences("server", Context.MODE_PRIVATE)
-        val userName = loginToken.getString("username", "")!!
-        val serverAddress = serverToken.getString("address", "")!!
-        val serverPort = serverToken.getString("port", "")!!
-        val serverUrl = "$serverAddress:$serverPort"
+        menuInflater.inflate(R.menu.navbar_menu, menu)
 
-        if (userName != "") {
-            nav_user_login.text = userName
-        }
-
-        if (serverAddress != "" && serverPort != "") {
-            nav_server_address.text = serverUrl
-        }
 
         return true
     }
@@ -253,14 +249,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         when (item.itemId) {
-            (R.id.action_settings) -> return true
-            (R.id.mode_toggle) -> {
-                // To change theme just put your theme id.
-                val themeToken = getSharedPreferences("theme", Context.MODE_PRIVATE)
-                val currentTheme = themeToken.getString("theme", Themes.Dark.toString())
-                val themeEnum = ThemeEnum
-                switchTheme(this, this)
-            }
+            (R.id.mode_toggle) -> ThemeEnum.switchTheme(this, this)
         }
         return super.onOptionsItemSelected(item)
     }
@@ -287,6 +276,8 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             }
         }
     }
+
+
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
@@ -316,15 +307,6 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                 startActivity(intent)
                 camera_view.stop()
                 finish()
-            }
-            R.id.nav_manage -> {
-
-            }
-            R.id.nav_share -> {
-
-            }
-            R.id.nav_send -> {
-
             }
         }
 

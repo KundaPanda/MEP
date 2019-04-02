@@ -6,6 +6,8 @@
 		<item name="colorPrimary">@color/colorPrimary</item>
 		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
 		<item name="colorAccent">@color/colorAccent</item>
+		<item name="windowActionBar">false</item>
+		<item name="windowNoTitle">true</item>
 	</style>
 
 	<style name="AppTheme.NoActionBar">
@@ -15,14 +17,14 @@
 	<style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar"/>
 	<style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
 
-	<style name="AlertDialogError" parent="@android:style/Theme.Material.Dialog">
-		<item name="android:textColor">@color/colorAccent</item>
+	<style name="AlertDialogError" parent="@android:style/Theme.Material.Dialog.NoActionBar">
+		<item name="android:textColorPrimary">@color/colorAccent</item>
 	</style>
-	<style name="AlertDialogFail" parent="@android:style/Theme.Material.Dialog">
-		<item name="android:textColor">@color/colorFail</item>
+	<style name="AlertDialogFail" parent="@android:style/Theme.Material.Dialog.NoActionBar">
+		<item name="android:textColorPrimary">@color/colorFail</item>
 	</style>
-	<style name="AlertDialogSuccess" parent="@android:style/Theme.Material.Dialog">
-		<item name="android:textColor">@color/colorSuccess</item>
+	<style name="AlertDialogSuccess" parent="@android:style/Theme.Material.Dialog.NoActionBar">
+		<item name="android:textColorPrimary">@color/colorSuccess</item>
 	</style>
 
 </resources>
