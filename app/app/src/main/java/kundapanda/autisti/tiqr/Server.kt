@@ -170,10 +170,14 @@ class Server : AppCompatActivity() {
 
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.navbar_menu, menu)
-        return super.onCreateOptionsMenu(menu)
+
+
+        return true
     }
+
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         val id = item!!.itemId

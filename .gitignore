@@ -6,3 +6,23 @@
 tempCodeRunnerFile.py
 *.gz
 !*.kt
+
+
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/typings
+
+# e2e
+/e2e/*.js
+/e2e/*.map
+
+.npm
+node_modules/
