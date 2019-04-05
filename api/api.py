@@ -10,7 +10,6 @@ from random import randint, choice
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import string
-import error_handler
 import tempfile
 from psycopg2 import pool
 from time import sleep
@@ -23,7 +22,6 @@ import base64
 
 # initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
-api.register_blueprint(error_handler.blueprint)
 file_scheduler = None
 
 LOGGING_TO_FILE = False
@@ -122,6 +120,7 @@ def create_table(table_name, size=0, **kwargs):
         if table_name not in tables:
             result = handler.create_table(table_name)
             if not result:
+                result = Response(status=201)
                 if size > 0:
                     result = add_entries(table_name, size)
                 return result
@@ -377,14 +376,10 @@ def assigned_user_table(user, **kwargs):
         result = auth_handler.find_corresponding_table(user)
     except Exception as e:
         print(e)
-    return result
+    return Response(status=400) if result else (jsonify(result), 200)
 
 
 def export_tickets(table_name, file_format, per_page, **kwargs):
-    if file_format == "":
-        file_format = "pdf"
-    if per_page == "":
-        per_page = 8
     codes = []
     result_list = handler.export_table(table_name)
     if result_list == 1 or type(result_list) != list:
@@ -442,7 +437,7 @@ parameters = {
     "per_page": ""
 }
 
-optional_parameters = {"file_format": "pdf", "per_page": 8}
+optional_parameters = {"file_format": "html", "per_page": 8}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])
@@ -523,7 +518,7 @@ def client(**kwargs):
     user = base64.b64decode(user).decode('utf-8').split(":")[0]
     table_name = assigned_user_table(user)
     if table_name == 1:
-        return Response(status="401")
+        return Response(status=401)
     parameters["table_name"] = table_name
     return (update_code(**parameters))
 
@@ -545,10 +540,19 @@ def get_file(filename):
         return Response(status=404)
     with open(filepath, "rb") as afile:
         result = Response(afile.read())
-    result.headers["Content-Encoding"] = 'gzip'
+    result_split = result.split(".")
+    if (len(result_split) < 2):
+        return Response(status=400)
+    if (result_split[-1] == "gz"):
+        encoding = "gzip"
+        content_type = "text/csv"
+    else:
+        encoding = "identity"
+        content_type = "text/html; charset=utf-8"
+    result.headers["Content-Encoding"] = encoding
     result.headers[
         "Content-Disposition"] = "attachment; filename=%s" % filename
-    result.headers["Content-type"] = "text/csv"
+    result.headers["Content-type"] = content_type
     return result
 
 

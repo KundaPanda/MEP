@@ -85,7 +85,7 @@ def find_corresponding_table(user):
     result = db_handler.select_row(COLUMNS[0], user, TABLE_NAME,
                                    cursor_wrapper, True)
     if result != 1:
-        return result[db_handler.COLUMNS[1]]
+        return {"table_name": result[db_handler.COLUMNS[1]]}
     else:
         return 1
 
