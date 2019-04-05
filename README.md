@@ -35,3 +35,4 @@
 * dokumentace trid/metod
 * smazat kotatka?
 * jaka licence?
+* http cesty (/db/ /db/table/ )?
