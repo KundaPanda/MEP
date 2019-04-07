@@ -33,7 +33,7 @@ import java.net.UnknownHostException
  * A server address input screen
  */
 class Server : AppCompatActivity() {
-    private val defaultServerPortStr = "5432"
+    private val defaultServerPortStr = "5000"
     private var serverPingTask: ServerPingTask? = null
     private val permissionsRequestCode = 200
     private lateinit var managePermissions: ManagePermissions
