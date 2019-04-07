@@ -104,6 +104,13 @@ class Server : AppCompatActivity() {
                 server_confirm_button.setOnClickListener { attemptConfirm() }
             }
         }
+        
+        // must be set in order to work without changing offline mode
+        if (offlineMode) {
+            server_confirm_button.setOnClickListener { offlineConfirm() }
+        } else {
+            server_confirm_button.setOnClickListener { attemptConfirm() }
+        }
 
         protocol_mode_switch.setOnClickListener(protocolTextChange)
 
