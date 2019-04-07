@@ -202,7 +202,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                                     val jsonMessage = JSONObject(response)
                                     if (jsonMessage.getInt("used") != 0) {
                                         responseMessage =
-                                            "Code $scannedCode has already been used ${jsonMessage.getInt("used")} times. Latest check was at: ${jsonMessage.getString(
+                                            "Code $scannedCode has already been used ${jsonMessage.getInt("used")} times.\n Last checked: ${jsonMessage.getString(
                                                 "time"
                                             )}."
                                         responseStatus = 1
@@ -233,7 +233,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                                 ) { dialog, _ -> dialog.dismiss() }
                                 alertDialog.show()
                                 val msgTxt = alertDialog.findViewById<TextView>(android.R.id.message) as TextView
-                                msgTxt.textSize = 16.0f
+                                msgTxt.textSize = 22.0f
                             }
 
                         } else {
