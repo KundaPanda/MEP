@@ -26,3 +26,5 @@ tempCodeRunnerFile.py
 
 .npm
 node_modules/
+
+app/.gradle

@@ -39,4 +39,5 @@
 	<string name="action_autoconnect_checkbox">Enable autoconnect</string>
 	<string name="action_login_to_server">Change server address</string>
 	<string name="offline_mode">Offline mode</string>
+	<string name="offline_scanner">Code scanner only</string>
 </resources>

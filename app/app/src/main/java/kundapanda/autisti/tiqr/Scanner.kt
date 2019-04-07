@@ -91,7 +91,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
             }
         } else {
             nav_view.getHeaderView(0).nav_user_login.text = resources.getText(R.string.offline_mode)
-            nav_view.getHeaderView(0).nav_server_address.text = resources.getText(R.string.offline_mode)
+            nav_view.getHeaderView(0).nav_server_address.text = resources.getText(R.string.offline_scanner)
         }
 
     }
