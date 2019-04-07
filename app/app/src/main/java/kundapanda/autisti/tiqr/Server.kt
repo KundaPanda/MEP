@@ -427,6 +427,7 @@ class Server : AppCompatActivity() {
                     editor.putString("address", serverCheckAddress)
                     editor.putString("port", serverCheckPort)
                 }
+                editor.putBoolean("offlineMode", offline_mode_switch.isChecked)
                 editor.putBoolean("autoConnect", autoconnect_checkbox.isChecked)
                 editor.apply()
                 // proceed to login

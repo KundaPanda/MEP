@@ -21,6 +21,7 @@ import android.util.Log
 import android.util.SparseArray
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.CameraSource.CAMERA_FACING_BACK
@@ -192,7 +193,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                             }
                             "2" -> {
                                 // error in connection
-                                responseMessage = "Error communicating with the server. Scanned code was: $scannedCode."
+                                responseMessage = "Error communicating with the server.\n Scanned code was: $scannedCode."
                                 responseStatus = 2
                             }
                             else -> {
@@ -231,6 +232,8 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                                     AlertDialog.BUTTON_NEUTRAL, "OK"
                                 ) { dialog, _ -> dialog.dismiss() }
                                 alertDialog.show()
+                                val msgTxt = alertDialog.findViewById<TextView>(android.R.id.message) as TextView
+                                msgTxt.textSize = 16.0f
                             }
 
                         } else {

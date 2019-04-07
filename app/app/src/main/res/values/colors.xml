@@ -10,4 +10,5 @@
 
 	<color name="colorSuccess">#2DC432</color>
     <color name="colorFail">#B00020</color>
+    <color name="colorError">#F44336</color>
 </resources>
