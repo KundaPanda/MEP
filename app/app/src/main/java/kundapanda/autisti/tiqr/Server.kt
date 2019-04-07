@@ -98,9 +98,11 @@ class Server : AppCompatActivity() {
 
         // change 'confirm' button behavior based on offlineMode toggle
         offline_mode_switch.setOnClickListener {
-            if (offlineMode) {
+            if (offline_mode_switch.isChecked) {
+                offlineMode = true
                 server_confirm_button.setOnClickListener { offlineConfirm() }
             } else {
+                offlineMode = false
                 server_confirm_button.setOnClickListener { attemptConfirm() }
             }
         }
