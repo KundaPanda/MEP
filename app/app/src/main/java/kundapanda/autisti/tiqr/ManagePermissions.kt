@@ -2,12 +2,7 @@ package kundapanda.autisti.tiqr
 
 
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-import android.support.design.widget.Snackbar
-import android.support.design.widget.Snackbar.LENGTH_LONG
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.widget.Toast
@@ -16,12 +11,14 @@ import android.widget.Toast
 class ManagePermissions(val activity: Activity, private val permissionsList: List<String>, private val code: Int) {
 
     // Check permissions at runtime
-    fun checkPermissions() {
+    fun checkPermissions(): Boolean {
         if (isPermissionsGranted() != PackageManager.PERMISSION_GRANTED) {
             requestPermissions()
         } else {
             Toast.makeText(activity, "Permissions already granted.", Toast.LENGTH_SHORT).show()
+            return true
         }
+        return false
     }
 
 
@@ -48,7 +45,7 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
     }
 
     // Find permission description
-    private fun getPermissionLabel(permission: String, packageManager: PackageManager): CharSequence? {
+    fun getPermissionLabel(permission: String, packageManager: PackageManager): CharSequence? {
         try {
             val permissionInfo = packageManager.getPermissionInfo(permission, 0)
             return permissionInfo.loadLabel(packageManager)
@@ -64,32 +61,6 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
         val permission = deniedPermission()
         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
             ActivityCompat.requestPermissions(activity, permissionsList.toTypedArray(), code)
-
-            Snackbar.make(
-                activity.currentFocus!!,
-                "This app needs permission to ${getPermissionLabel(
-                    permission,
-                    activity.packageManager
-                )} in order to function correctly, please allow them in settings.",
-                LENGTH_LONG
-            ).addCallback(
-                object : Snackbar.Callback() {
-                    override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                        super.onDismissed(transientBottomBar, event)
-                        val requestSnackBar = Snackbar.make(
-                            activity.currentFocus!!,
-                            "Open settings?",
-                            LENGTH_LONG
-                        )
-                        requestSnackBar.setAction("Ok") {
-                            val intent = Intent()
-                            intent.action = ACTION_APPLICATION_DETAILS_SETTINGS
-                            intent.data = Uri.fromParts("package", activity.packageName, null)
-                            activity.startActivity(intent)
-
-                        }.show()
-                    }
-                }).show()
         } else {
             ActivityCompat.requestPermissions(activity, permissionsList.toTypedArray(), code)
         }

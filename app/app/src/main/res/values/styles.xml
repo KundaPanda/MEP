@@ -20,21 +20,21 @@
 	<style name="AlertDialogError" parent="@android:style/Theme.Material.Dialog.NoActionBar">
 		<item name="android:textColorPrimary">@color/colorAccent</item>
 		<item name="android:gravity">center</item>
-		<item name="android:textSize">16sp</item>
+		<item name="android:textSize">20sp</item>
 	</style>
 	<style name="AlertDialogFail" parent="@android:style/Theme.Material.Dialog.NoActionBar">
 		<item name="android:textColorPrimary">@color/colorFail</item>
 		<item name="android:gravity">center</item>
-		<item name="android:textSize">16sp</item>
+		<item name="android:textSize">20sp</item>
 	</style>
 	<style name="AlertDialogSuccess" parent="@android:style/Theme.Material.Dialog.NoActionBar">
 		<item name="android:textColorPrimary">@color/colorSuccess</item>
 		<item name="android:gravity">center</item>
-		<item name="android:textSize">16sp</item>
+		<item name="android:textSize">20sp</item>
 	</style>
 	<style name="AlertDialogOffline" parent="@android:style/Theme.Material.Dialog.NoActionBar">
 		<item name="android:gravity">center</item>
-		<item name="android:textSize">16sp</item>
+		<item name="android:textSize">20sp</item>
 	</style>
 
 </resources>

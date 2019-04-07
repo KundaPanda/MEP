@@ -6,17 +6,19 @@ import android.animation.AnimatorListenerAdapter
 import android.annotation.TargetApi
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.support.design.widget.Snackbar
-import android.support.design.widget.Snackbar.LENGTH_INDEFINITE
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.util.Patterns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.URLUtil
 import android.widget.TextView
@@ -41,6 +43,7 @@ class Server : AppCompatActivity() {
         INTERNET
     )
     private var offlineMode = false
+    private var permissionsGranted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // set theme from shared prefs
@@ -61,7 +64,9 @@ class Server : AppCompatActivity() {
         // check permissions and request if needed
         managePermissions = ManagePermissions(this, permissionsList, permissionsRequestCode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            managePermissions.checkPermissions()
+            if (managePermissions.checkPermissions()) {
+                permissionsGranted = true
+            }
         }
 
         // load protocol and offlineMode from shared preferences, set its default value to https
@@ -93,7 +98,7 @@ class Server : AppCompatActivity() {
 
         // change 'confirm' button behavior based on offlineMode toggle
         offline_mode_switch.setOnClickListener {
-            if (offline_mode_switch.isChecked) {
+            if (offlineMode) {
                 server_confirm_button.setOnClickListener { offlineConfirm() }
             } else {
                 server_confirm_button.setOnClickListener { attemptConfirm() }
@@ -145,6 +150,11 @@ class Server : AppCompatActivity() {
         serverStr: String = server_id.text.toString(),
         serverPortStr: String = server_port_id.text.toString()
     ) {
+        if (!permissionsGranted) {
+            showBlockingToast()
+            return
+        }
+
         if (serverPingTask != null) {
             return
         }
@@ -190,12 +200,23 @@ class Server : AppCompatActivity() {
     }
 
     /**
+     * shows toast message about permissions
+     */
+    private fun showBlockingToast() {
+        Toast.makeText(this, "You cannot use this app until requested permissions will have been granted. \n Please grant these permissions in settings and restart the app.", Toast.LENGTH_LONG).show()
+    }
+
+    /**
      * Attempts to connect to the server with given values
      */
     private fun offlineConfirm(
         serverStr: String = server_id.text.toString(),
         serverPortStr: String = server_port_id.text.toString()
     ) {
+        if (!permissionsGranted) {
+            showBlockingToast()
+            return
+        }
         // reset errors
         server_id.error = null
         server_port_id.error = null
@@ -260,16 +281,38 @@ class Server : AppCompatActivity() {
             permissionsRequestCode -> {
                 val isPermissionsGranted = managePermissions
                     .processPermissionsResult(grantResults)
-
                 if (isPermissionsGranted) {
                     // Do the task now
+                    permissionsGranted = true
                     Toast.makeText(this, "Permissions granted.", Toast.LENGTH_LONG).show()
                 } else {
+                    permissionsGranted = false
+                    val viewGroup = (this.findViewById(android.R.id.content) as ViewGroup).getChildAt(0) as ViewGroup
                     Snackbar.make(
-                        this.currentFocus!!,
-                        "This application cannot function properly without requested permissions.",
-                        LENGTH_INDEFINITE
-                    ).show()
+                        viewGroup,
+                        "This app needs permission to ${managePermissions.getPermissionLabel(
+                            permissions[0],
+                            packageManager
+                        )} in order to function correctly, please allow them in settings.",
+                        Snackbar.LENGTH_LONG
+                    ).addCallback(
+                        object : Snackbar.Callback() {
+                            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                                super.onDismissed(transientBottomBar, event)
+                                val requestSnackBar = Snackbar.make(
+                                    viewGroup,
+                                    "Open settings?",
+                                    Snackbar.LENGTH_LONG
+                                )
+                                requestSnackBar.setAction("Ok") {
+                                    val intent = Intent()
+                                    intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                    intent.data = Uri.fromParts("package", packageName, null)
+                                    startActivity(intent)
+
+                                }.show()
+                            }
+                        }).show()
                 }
                 return
             }

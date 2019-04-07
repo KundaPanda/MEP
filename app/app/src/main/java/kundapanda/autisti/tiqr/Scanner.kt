@@ -17,6 +17,7 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
+import android.util.Log
 import android.util.SparseArray
 import android.view.Menu
 import android.view.MenuItem
@@ -97,12 +98,15 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
 
     override fun onPause() {
         super.onPause()
-        camera_view.stop()
+        camera_view.release()
+        detector.release()
     }
 
     override fun onResume() {
+        Log.d("Scanner", "resume")
         super.onResume()
-        camera_view.start(cameraSource, camera_view_overlay)
+        val handler = Handler(Looper.getMainLooper())
+        handler.post { setupBarcodeDetector() }
     }
 
 
@@ -126,7 +130,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         cameraSource = CameraSource.Builder(this, detector)
             .setFacing(CAMERA_FACING_BACK)
             .setAutoFocusEnabled(true)
-            .setRequestedFps(30.toFloat())
+            .setRequestedFps(23.toFloat())
             .build()
 
         // start camera preview after setup
