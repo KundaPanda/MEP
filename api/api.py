@@ -376,7 +376,7 @@ def assigned_user_table(user, **kwargs):
         result = auth_handler.find_corresponding_table(user)
     except Exception as e:
         print(e)
-    return Response(status=400) if result else (jsonify(result), 200)
+    return Response(status=400) if result == 1 else (jsonify(result), 200)
 
 
 def export_tickets(table_name, file_format, per_page, **kwargs):
@@ -516,9 +516,11 @@ def client(**kwargs):
     # find the assigned table, abort if no assignment is found else call the method
     user = request.headers["Authorization"].replace("Basic ", "")
     user = base64.b64decode(user).decode('utf-8').split(":")[0]
+    # assigned_user_table returns either response 400 or json response and 200
     table_name = assigned_user_table(user)
-    if table_name == 1:
+    if isinstance(table_name, Response) and table_name.status_code == 400:
         return Response(status=401)
+    table_name = table_name[0].json["table_name"]
     parameters["table_name"] = table_name
     return (update_code(**parameters))
 
