@@ -6,7 +6,7 @@
 tempCodeRunnerFile.py
 *.gz
 !*.kt
-
+!*.xml
 
 # compiled output
 /dist
