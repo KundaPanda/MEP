@@ -17,6 +17,7 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
+import android.text.format.DateFormat
 import android.util.Log
 import android.util.SparseArray
 import android.view.Menu
@@ -35,6 +36,7 @@ import kotlinx.android.synthetic.main.content_scanner.*
 import kotlinx.android.synthetic.main.nav_header_scanner.view.*
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.*
 
 
 class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -49,6 +51,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
     private lateinit var cameraSource: CameraSource
     private lateinit var detector: BarcodeDetector
     private var offlineMode = false
+    private val scanHistory = ScanHistory()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // select theme based od shared prefs
@@ -103,11 +106,23 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
         detector.release()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        camera_view.stop()
+        detector.release()
+    }
+
     override fun onResume() {
         Log.d("Scanner", "resume")
         super.onResume()
         val handler = Handler(Looper.getMainLooper())
         handler.post { setupBarcodeDetector() }
+    }
+
+    fun toLocal(timestamp: Long): Long {
+        val cal = Calendar.getInstance()
+        val offset = cal.timeZone.getOffset(timestamp)
+        return timestamp - offset
     }
 
 
@@ -159,7 +174,12 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                         detector.release()
                     }
 
+                    val time = toLocal(System.currentTimeMillis())
+                    val timeStr = DateFormat.format("d.M yyyy H:mm:ss", time).toString()
+                    val code = Code(scannedCode, "", timeStr)
+
                     if (offlineMode) {
+                        code.response = "Offline"
                         handler.post {
                             val alertDialog = AlertDialog.Builder(this@Scanner, R.style.AlertDialogOffline).create()
                             alertDialog.setTitle("Scanned code:")
@@ -187,16 +207,20 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                         var responseStatus = 0
                         when (response) {
                             "1" -> {
+                                code.response = "Invalid"
                                 // invalid code
                                 responseMessage = "$scannedCode is not a valid code."
                                 responseStatus = 1
                             }
                             "2" -> {
+                                code.response = "Connection Error"
                                 // error in connection
-                                responseMessage = "Error communicating with the server.\n Scanned code was: $scannedCode."
+                                responseMessage =
+                                    "Error communicating with the server.\n Scanned code was: $scannedCode."
                                 responseStatus = 2
                             }
                             else -> {
+                                code.response = "Valid"
                                 // valid code
                                 try {
                                     val jsonMessage = JSONObject(response)
@@ -247,6 +271,7 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                             snackBar.setAction("Dismiss") { snackBar.dismiss() }.show()
                         }
                     }
+                    scanHistory.addCode(code, this@Scanner)
                 }
             }
         })
@@ -313,9 +338,9 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                 editor.apply()
                 intent = Intent(this, Login::class.java)
                 startActivity(intent)
-                camera_view.stop()
                 finish()
             }
+
             R.id.nav_request_permissions -> {
                 // re-check permissions
                 managePermissions = ManagePermissions(this, permissionsList, permissionsRequestCode)
@@ -323,6 +348,12 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                     managePermissions.checkPermissions()
                 }
             }
+
+            R.id.nav_scan_history -> {
+                intent = Intent(this, ScanHistory::class.java)
+                startActivity(intent)
+            }
+
             R.id.nav_change_server -> {
                 // disable autoConnect and go to server preferences screen
                 val token = getSharedPreferences("server", Context.MODE_PRIVATE)
@@ -331,7 +362,6 @@ class Scanner : AppCompatActivity(), NavigationView.OnNavigationItemSelectedList
                 editor.apply()
                 intent = Intent(this, Server::class.java)
                 startActivity(intent)
-                camera_view.stop()
                 finish()
             }
         }
