@@ -10,7 +10,28 @@
         </entry>
         <entry key="vectorWizard">
           <value>
-            <PersistentState />
+            <PersistentState>
+              <option name="children">
+                <map>
+                  <entry key="vectorAssetStep">
+                    <value>
+                      <PersistentState>
+                        <option name="values">
+                          <map>
+                            <entry key="assetSourceType" value="FILE" />
+                            <entry key="height" value="96" />
+                            <entry key="outputName" value="ic_rescan" />
+                            <entry key="overrideSize" value="true" />
+                            <entry key="sourceFile" value="D:\mep\app\app\src\main\res\my_icons\rescan.svg" />
+                            <entry key="width" value="96" />
+                          </map>
+                        </option>
+                      </PersistentState>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </PersistentState>
           </value>
         </entry>
       </map>

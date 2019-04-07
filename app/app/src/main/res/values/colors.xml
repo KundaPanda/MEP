@@ -2,12 +2,12 @@
 <resources>
     <color name="colorPrimary">#007991</color>
     <color name="colorPrimaryDark">#012a36</color>
-	<color name="colorAccent">#9e2b25</color>
+	<color name="colorAccent">#AC3C4B</color>
 
-    <color name="colorPrimaryLight">#729b79</color>
+    <color name="colorPrimaryLight">#6cae75</color>
     <color name="colorPrimaryLightDark">#3e5641</color>
-    <color name="colorLightAccent">#d8973c</color>
+    <color name="colorLightAccent">#f2c14e</color>
 
-	<color name="colorSuccess">#4CAF50</color>
-    <color name="colorFail">#E91E63</color>
+	<color name="colorSuccess">#2DC432</color>
+    <color name="colorFail">#B00020</color>
 </resources>

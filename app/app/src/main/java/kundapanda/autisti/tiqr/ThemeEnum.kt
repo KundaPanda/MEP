@@ -7,19 +7,21 @@ import android.content.Context.MODE_PRIVATE
 enum class ThemeEnum {
     Dark, Light;
 
-
+    /**
+     * class for setting themes and switching based on enum
+     */
     companion object {
 
-        fun toTheme(themeEnum: String): ThemeEnum {
+        private fun toTheme(themeEnum: String): ThemeEnum {
             try {
                 return valueOf(themeEnum)
             } catch (ex: Exception) {
-                // For error cases
             }
             return Dark
 
         }
 
+        // keeping if necessary in the future
         fun setTheme(context: Context, theme: ThemeEnum) {
             val sp = context.getSharedPreferences("theme", MODE_PRIVATE)
             val editor = sp.edit()

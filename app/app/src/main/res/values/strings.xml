@@ -38,4 +38,5 @@
 	<string name="action_autologin_checkbox">Enable autologin</string>
 	<string name="action_autoconnect_checkbox">Enable autoconnect</string>
 	<string name="action_login_to_server">Change server address</string>
+	<string name="offline_mode">Offline mode</string>
 </resources>

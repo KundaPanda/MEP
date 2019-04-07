@@ -10,9 +10,6 @@ import android.support.design.widget.Snackbar
 import android.support.design.widget.Snackbar.LENGTH_LONG
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
-import android.support.v7.app.AlertDialog
-import android.util.Log
-import android.view.View
 import android.widget.Toast
 
 
@@ -30,8 +27,8 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
 
     // Check permissions status
     private fun isPermissionsGranted(): Int {
-        // PERMISSION_GRANTED : Constant Value: 0
-        // PERMISSION_DENIED : Constant Value: -1
+        // PERMISSION_GRANTED : 0
+        // PERMISSION_DENIED : -1
         var counter = 0
         for (permission in permissionsList) {
             counter += ContextCompat.checkSelfPermission(activity, permission)
@@ -50,7 +47,7 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
         return ""
     }
 
-
+    // Find permission description
     private fun getPermissionLabel(permission: String, packageManager: PackageManager): CharSequence? {
         try {
             val permissionInfo = packageManager.getPermissionInfo(permission, 0)
@@ -66,7 +63,6 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
     private fun requestPermissions() {
         val permission = deniedPermission()
         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
-            Log.i("PERMS", "Should show")
             ActivityCompat.requestPermissions(activity, permissionsList.toTypedArray(), code)
 
             Snackbar.make(
@@ -78,10 +74,6 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
                 LENGTH_LONG
             ).addCallback(
                 object : Snackbar.Callback() {
-                    override fun onShown(sb: Snackbar?) {
-                        super.onShown(sb)
-                    }
-
                     override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                         super.onDismissed(transientBottomBar, event)
                         val requestSnackBar = Snackbar.make(
@@ -89,14 +81,13 @@ class ManagePermissions(val activity: Activity, private val permissionsList: Lis
                             "Open settings?",
                             LENGTH_LONG
                         )
-                        requestSnackBar.setAction("Ok", object : View.OnClickListener {
-                            override fun onClick(v: View?) {
-                                val intent = Intent()
-                                intent.action = ACTION_APPLICATION_DETAILS_SETTINGS
-                                intent.data = Uri.fromParts("package", activity.packageName, null)
-                                activity.startActivity(intent)
-                            }
-                        }).show()
+                        requestSnackBar.setAction("Ok") {
+                            val intent = Intent()
+                            intent.action = ACTION_APPLICATION_DETAILS_SETTINGS
+                            intent.data = Uri.fromParts("package", activity.packageName, null)
+                            activity.startActivity(intent)
+
+                        }.show()
                     }
                 }).show()
         } else {

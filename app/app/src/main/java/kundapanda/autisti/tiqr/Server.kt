@@ -13,7 +13,6 @@ import android.support.design.widget.Snackbar
 import android.support.design.widget.Snackbar.LENGTH_INDEFINITE
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
-import android.util.Log
 import android.util.Patterns
 import android.view.Menu
 import android.view.MenuItem
@@ -23,17 +22,15 @@ import android.webkit.URLUtil
 import android.widget.TextView
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_server.*
+import kotlinx.android.synthetic.main.activity_toolbar.*
 import java.net.MalformedURLException
 import java.net.UnknownHostException
 
 
 /**
- * A login screen that offers login via email/password.
+ * A server address input screen
  */
 class Server : AppCompatActivity() {
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
     private val defaultServerPortStr = "5432"
     private var serverPingTask: ServerPingTask? = null
     private val permissionsRequestCode = 200
@@ -43,8 +40,10 @@ class Server : AppCompatActivity() {
         WRITE_EXTERNAL_STORAGE,
         INTERNET
     )
+    private var offlineMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // set theme from shared prefs
         val currentTheme = ThemeEnum.getTheme(this)
         if (currentTheme == ThemeEnum.Light) {
             setTheme(R.style.AppTheme_Light)
@@ -54,25 +53,36 @@ class Server : AppCompatActivity() {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
 
+        // inflate layout and add toolbar
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_server)
-//        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        setSupportActionBar(toolbar)
 
+        // check permissions and request if needed
         managePermissions = ManagePermissions(this, permissionsList, permissionsRequestCode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             managePermissions.checkPermissions()
         }
 
+        // load protocol and offlineMode from shared preferences, set its default value to https
         val token = getSharedPreferences("server", Context.MODE_PRIVATE)
-        var protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "")
+        var protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "")!!
+        offlineMode = getSharedPreferences("server", Context.MODE_PRIVATE).getBoolean("offlineMode", false)
 
+        // save default protocol as https
         if (protocol == "") {
-            getSharedPreferences("server", Context.MODE_PRIVATE).edit().putString("protocol", "http://").apply()
-            protocol = "http://"
+            getSharedPreferences("server", Context.MODE_PRIVATE).edit().putString("protocol", "https://").apply()
+            protocol = "https://"
         }
+        // set switch according to offlineMode
+        offline_mode_switch.isChecked = offlineMode
 
-        protocol_mode_switch.isChecked = (protocol == "http://")
+        // set switch and text according to protocol
+        protocol_mode_switch.isChecked = (protocol == "https://")
+        protocol_mode_switch.text = protocol.replace("://", "")
 
+
+        // starts confirm upon pressing enter in TextView
         server_id.setOnEditorActionListener(TextView.OnEditorActionListener { _, id, _ ->
             if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
                 attemptConfirm()
@@ -81,41 +91,55 @@ class Server : AppCompatActivity() {
             false
         })
 
-        protocol_mode_switch.setOnClickListener(fun(view: View) {
-            val editor = getSharedPreferences("server", Context.MODE_PRIVATE).edit()
-            if (protocol_mode_switch.isChecked) {
-                editor.putString("protocol", "https://")
-                protocol_mode_switch.text = this.getString(R.string.protocol_mode_https)
+        // change 'confirm' button behavior based on offlineMode toggle
+        offline_mode_switch.setOnClickListener {
+            if (offline_mode_switch.isChecked) {
+                server_confirm_button.setOnClickListener { offlineConfirm() }
             } else {
-                editor.putString("protocol", "http://")
-                protocol_mode_switch.text = this.getString(R.string.protocol_mode_http)
+                server_confirm_button.setOnClickListener { attemptConfirm() }
             }
-            editor.apply()
-        })
+        }
 
+        protocol_mode_switch.setOnClickListener(protocolTextChange)
+
+        // load saved values from shared preferences
         val serverStr = token.getString("address", "")!!
         val serverPortStr = token.getString("port", "")!!
         val autoConnect = token.getBoolean("autoConnect", false)
-        val serverProtocol = token.getString("protocol", "https://")
 
-        protocol_mode_switch.isChecked = (serverProtocol == "https://")
+        if (offlineMode && autoConnect) {
+            offlineConfirm(serverStr, serverPortStr)
+        }
 
+        // if saved values are not empty, fill textViews
         if (serverStr != "" && serverPortStr != "") {
             server_id.text.insert(server_id.selectionStart, serverStr)
             server_port_id.text.insert(server_port_id.selectionStart, serverPortStr)
+            // if autoConnect is checked, connect with saved values
             if (autoConnect) {
                 attemptConfirm(serverStr, serverPortStr)
             }
         }
+    }
 
-        sever_confirm_button.setOnClickListener { attemptConfirm() }
+    /**
+     * Sets shared preferences and protocol button text to values according to protocol button state
+     */
+    private val protocolTextChange = View.OnClickListener {
+        val editor = getSharedPreferences("server", Context.MODE_PRIVATE).edit()
+        if (protocol_mode_switch.isChecked) {
+            editor.putString("protocol", "https://")
+            protocol_mode_switch.text = this.getString(R.string.protocol_mode_https)
+        } else {
+            editor.putString("protocol", "http://")
+            protocol_mode_switch.text = this.getString(R.string.protocol_mode_http)
+        }
+        editor.apply()
     }
 
 
     /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
+     * Attempts to connect to the server with given values
      */
     private fun attemptConfirm(
         serverStr: String = server_id.text.toString(),
@@ -125,9 +149,13 @@ class Server : AppCompatActivity() {
             return
         }
 
+        // reset errors
+        server_id.error = null
+        server_port_id.error = null
+
+        // replace all spaces and http(s):// in the entered address
         var modifiedServerStr: String = serverStr
         var modifiedPortStr: String = serverPortStr
-
         if (modifiedServerStr.take(7) == "http://") {
             modifiedServerStr = modifiedServerStr.replace("https://", "")
         } else if (modifiedServerStr.take(8) == "https://") {
@@ -139,30 +167,21 @@ class Server : AppCompatActivity() {
             modifiedPortStr = defaultServerPortStr
         }
 
-        // Reset errors.
-        server_id.error = null
-        server_port_id.error = null
-
         val focusView: View?
-
+        // if port is not valid, stop checking and set error message
         if (!isServerPortValid(modifiedPortStr)) {
             server_port_id.error = getString(R.string.error_invalid_server_port)
             focusView = server_port_id
             focusView?.requestFocus()
         } else {
-            // Check for a valid password, if the user entered one.
+            // check if server is valid
             if (!isServerValid(modifiedServerStr)) {
                 server_id.error = getString(R.string.error_invalid_server)
                 focusView = server_id
-
-                // There was an error; don't attempt login and focus the first
-                // form field with an error.
                 focusView?.requestFocus()
             } else {
-                // Show a progress spinner, and kick off a background task to
-                // perform the user login attempt.
+                // Show a progress spinner and try to connect to the server
                 showProgress(true)
-                // remove all whitespaces
                 serverPingTask = ServerPingTask(modifiedServerStr, modifiedPortStr)
                 serverPingTask!!.execute(null as Void?)
             }
@@ -170,16 +189,59 @@ class Server : AppCompatActivity() {
 
     }
 
+    /**
+     * Attempts to connect to the server with given values
+     */
+    private fun offlineConfirm(
+        serverStr: String = server_id.text.toString(),
+        serverPortStr: String = server_port_id.text.toString()
+    ) {
+        // reset errors
+        server_id.error = null
+        server_port_id.error = null
+
+        // replace all spaces and http(s):// in the entered address
+        var modifiedServerStr: String = serverStr
+        var modifiedPortStr: String = serverPortStr
+        if (modifiedServerStr.take(7) == "http://") {
+            modifiedServerStr = modifiedServerStr.replace("https://", "")
+        } else if (modifiedServerStr.take(8) == "https://") {
+            modifiedServerStr = modifiedServerStr.replace("http://", "")
+        }
+        modifiedServerStr = modifiedServerStr.replace("[\\s]", "")
+        modifiedPortStr = modifiedPortStr.replace("[\\s]", "")
+        if (modifiedPortStr.isEmpty()) {
+            modifiedPortStr = defaultServerPortStr
+        }
+
+        // save all entered values, autoConnect checkbox and protocol
+        val token = getSharedPreferences("server", Context.MODE_PRIVATE)
+        val editor = token.edit()
+        if ((token.getString("address", "") != modifiedServerStr)
+            || (token.getString("port", "") != modifiedPortStr)
+        ) {
+            editor.putString("address", modifiedServerStr)
+            editor.putString("port", modifiedPortStr)
+        }
+        editor.putBoolean("autoConnect", autoconnect_checkbox.isChecked)
+        editor.putBoolean("offlineMode", offline_mode_switch.isChecked)
+        editor.apply()
+        // proceed directly to scanner
+        val intent = Intent(this@Server, Scanner::class.java)
+        startActivity(intent)
+        finish()
+
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
+        // Inflate the action bar
         menuInflater.inflate(R.menu.navbar_menu, menu)
-
-
         return true
     }
 
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        // add onclick listener for theme switch button
         val id = item!!.itemId
         when (id) {
             (R.id.mode_toggle) -> ThemeEnum.switchTheme(this, this)
@@ -187,6 +249,9 @@ class Server : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    /**
+     * shows response after requesting permissions
+     */
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>,
         grantResults: IntArray
@@ -211,6 +276,9 @@ class Server : AppCompatActivity() {
         }
     }
 
+    /**
+     * checks if server is valid by checking if it is an ipv4 or a valid url
+     */
     private fun isServerValid(serverStr: String): Boolean {
         try {
             if ((URLUtil.isValidUrl(serverStr) || (Patterns.WEB_URL.matcher(serverStr).matches()) || (serverStr.split(".").size == 4))) {
@@ -221,6 +289,9 @@ class Server : AppCompatActivity() {
         return false
     }
 
+    /**
+     * checks if port is in possible range
+     */
     private fun isServerPortValid(serverPortStr: String): Boolean {
         if (serverPortStr.toInt() in 1..65535) {
             return true
@@ -269,17 +340,17 @@ class Server : AppCompatActivity() {
         private val serverCheckAddress: String,
         private var serverCheckPort: String
     ) :
+    // leaks won't occur as the activity won't close until this task is finished, could be done on main thread, but it would lock ui progress bar
         AsyncTask<Void, Void, Boolean>() {
 
         override fun doInBackground(vararg params: Void): Boolean? {
-
+            // try to connect in background
             try {
                 val protocol = getSharedPreferences("server", Context.MODE_PRIVATE).getString("protocol", "https://")!!
                 val requestHandler = RequestHandler()
                 requestHandler.setTransmissionProtocol(protocol)
                 val response = requestHandler.checkServerAvailable(serverCheckAddress, serverCheckPort.toInt())
                 if (response) {
-                    Log.d("CONNECT", "connection successful")
                     return true
                 }
             } catch (e: UnknownHostException) {
@@ -287,7 +358,6 @@ class Server : AppCompatActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            Log.d("CONNECT", "connection unsuccessful")
             return false
         }
 
@@ -296,6 +366,7 @@ class Server : AppCompatActivity() {
             showProgress(false)
 
             if (success!!) {
+                // save all entered values, autoConnect checkbox and protocol
                 val token = getSharedPreferences("server", Context.MODE_PRIVATE)
                 val editor = token.edit()
                 if ((token.getString("address", "") != serverCheckAddress)
@@ -306,12 +377,12 @@ class Server : AppCompatActivity() {
                 }
                 editor.putBoolean("autoConnect", autoconnect_checkbox.isChecked)
                 editor.apply()
-
+                // proceed to login
                 val intent = Intent(this@Server, Login::class.java)
                 startActivity(intent)
-
                 finish()
             } else {
+                // set errors if not successful
                 server_id.error = getString(R.string.error_unreachable_server)
                 server_id.requestFocus()
             }

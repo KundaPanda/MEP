@@ -11,16 +11,16 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.text.TextUtils
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_login.*
+import kotlinx.android.synthetic.main.activity_toolbar.*
 
 /**
- * A login screen that offers login via email/password.
+ * A login screen
  */
 class Login : AppCompatActivity() {
     /**
@@ -29,6 +29,7 @@ class Login : AppCompatActivity() {
     private var mAuthTask: UserLoginTask? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // set theme from shared prefs
         val currentTheme = ThemeEnum.getTheme(this)
         if (currentTheme == ThemeEnum.Light) {
             setTheme(R.style.AppTheme_Light)
@@ -38,11 +39,12 @@ class Login : AppCompatActivity() {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
 
+        // inflate layout and add toolbar
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-        delegate.setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        // Set up the login form.
+        setSupportActionBar(toolbar)
 
+        // check permissions and request if needed
         password_id.setOnEditorActionListener(TextView.OnEditorActionListener { _, id, _ ->
             if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
                 attemptLogin()
@@ -51,21 +53,26 @@ class Login : AppCompatActivity() {
             false
         })
 
+        // load all shared preferences
         val token = getSharedPreferences("login", Context.MODE_PRIVATE)
         val uName = token.getString("username", "")!!
         val uPass = token.getString("password", "")!!
         val autoLogin = token.getBoolean("autoLogin", false)
 
-
+        // if saved values are not empty, fill textViews
         if (uName != "" && uPass != "") {
             login_id.text.insert(login_id.selectionStart, uName)
             password_id.text.insert(password_id.selectionStart, uPass)
+            // if autoLogin is enabled, login
             if (autoLogin) {
                 attemptLogin(uName, uPass)
             }
         }
 
+        // add onclick listener for login button
         sign_in_button.setOnClickListener { attemptLogin() }
+
+        // add onclick listener to return to server edit screen
         login_to_server_button.setOnClickListener {
             getSharedPreferences("server", Context.MODE_PRIVATE).edit().putBoolean("autoConnect", false).apply()
             val intent = Intent(this, Server::class.java)
@@ -76,9 +83,7 @@ class Login : AppCompatActivity() {
 
 
     /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
+     * Attempts to login with provided credentials
      */
     private fun attemptLogin(
         loginStr: String = login_id.text.toString(),
@@ -95,14 +100,14 @@ class Login : AppCompatActivity() {
         var cancel = false
         var focusView: View? = null
 
-        // Check for a valid password, if the user entered one.
+        // Check for a valid password
         if (TextUtils.isEmpty(passwordStr) || !isPasswordValid(passwordStr)) {
             password_id.error = getString(R.string.error_invalid_password)
             focusView = password_id
             cancel = true
         }
 
-        // Check for a valid email address.
+        // Check for a valid login
         if (TextUtils.isEmpty(loginStr) || !isLoginValid(loginStr)) {
             login_id.error = getString(R.string.error_field_required)
             focusView = login_id
@@ -124,15 +129,14 @@ class Login : AppCompatActivity() {
 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
+        // Inflate the action bar
         menuInflater.inflate(R.menu.navbar_menu, menu)
-
-
         return true
     }
 
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        // add onclick listener for theme switch button
         val id = item!!.itemId
         when (id) {
             (R.id.mode_toggle) -> ThemeEnum.switchTheme(this, this)
@@ -141,10 +145,12 @@ class Login : AppCompatActivity() {
     }
 
     private fun isPasswordValid(password: String): Boolean {
+        // simple check, can be changed easily here
         return password.length > 4
     }
 
     private fun isLoginValid(login: String): Boolean {
+        // simple check, can be changed easily here
         return login.length > 4
     }
 
@@ -181,33 +187,29 @@ class Login : AppCompatActivity() {
     }
 
     /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
+     * Represents an asynchronous login task used to authenticate the user.
      */
     private inner class UserLoginTask internal constructor(private val mLogin: String, private val mPassword: String) :
+        // leaks won't occur as the activity won't close until this task is finished, could be done on main thread, but it would lock ui progress bar
         AsyncTask<Void, Void, Boolean>() {
 
         override fun doInBackground(vararg params: Void): Boolean? {
-            // TODO: attempt authentication against a network service.
-
             try {
-
+                // load server details
                 val token = getSharedPreferences("server", Context.MODE_PRIVATE)
                 val address = token.getString("address", "")!!
                 val port = token.getString("port", "")!!
                 val protocol = token.getString("protocol", "")!!
                 if (address != "" && port != "") {
+                    // attempt connection to server with provided credentials
                     val requestHandler = RequestHandler()
                     requestHandler.setTransmissionProtocol(protocol)
                     requestHandler.setBasicAuth(mLogin, mPassword)
-
                     val response = requestHandler.checkServerLoginValid(address, port.toInt())
                     if (!response) {
                         return false
                     }
                 }
-
-                Thread.sleep(100)
             } catch (e: InterruptedException) {
                 return false
             }
@@ -219,6 +221,7 @@ class Login : AppCompatActivity() {
             showProgress(false)
 
             if (success!!) {
+                // if log-in successful, save into shared preferences and go to scanner
                 val token = getSharedPreferences("login", Context.MODE_PRIVATE)
                 val editor = token.edit()
                 if (token.getString("username", "") != mLogin || token.getString("password", "") != mPassword) {
@@ -227,12 +230,11 @@ class Login : AppCompatActivity() {
                 }
                 editor.putBoolean("autoLogin", autologin_checkbox.isChecked)
                 editor.apply()
-
                 val intent = Intent(this@Login, Scanner::class.java)
                 startActivity(intent)
-
                 finish()
             } else {
+                // show error message
                 password_id.error = getString(R.string.error_incorrect_password)
                 password_id.requestFocus()
             }
