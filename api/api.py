@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import db_handler as handler
+import db_handler
+import auth_handler
+import tickets
 import json
 import os
-from flask import Flask, request, render_template, abort, url_for, jsonify, Response, stream_with_context, send_from_directory
+from flask import Flask, request, abort, jsonify, Response
 from flask_basicauth import BasicAuth
-from random import randint, choice
+from random import randint
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
-import string
-import tempfile
 from psycopg2 import pool
 from time import sleep
 from datetime import datetime
 import logging
 import logging.handlers
-import auth_handler
-import tickets
 import base64
+import shutil
+import subprocess
+import threading
 
 # initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
@@ -31,8 +32,17 @@ COLUMNS = ("id", "code", "used", "time")
 # pre-defined code length for uniformity
 CODE_LENGTH = 20
 PUBLIC_PATH = os.path.abspath('public')
+BACKUP_PATH = os.path.abspath('backup')
+currently_restoring = False
 
 # TODO: class structure as well?
+
+
+def shutdown_api():
+    shutdown = request.environ.get('werkzeug.server.shutdown')
+    if not shutdown:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    shutdown()
 
 
 def get_random_code(length):
@@ -46,18 +56,6 @@ def get_random_code(length):
     """
 
     return randint(int("1" + "0" * (length - 1)), int("9" * length))
-
-
-def get_random_filename():
-    """creates a random filename from all letters and numbers
-
-    Returns:
-        [string] -- [generated filename]
-    """
-
-    return "".join(
-        choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
-        for _ in range(randint(5, 21)))
 
 
 def delete_file(afile, filename=None):
@@ -83,7 +81,7 @@ def delete_file(afile, filename=None):
         return 1
 
 
-def delete_listener(ascheduler):
+def onexit_scheduler_closer(ascheduler):
     """
     function to be called upon exit to close all the open file_scheduler jobs and shut it down
     do NOT call while running
@@ -115,10 +113,10 @@ def create_table(table_name, size=0, **kwargs):
         return Response(status=406)
     if table_name and size:
         # get all table names of the database and check if the table is already in the database
-        tables = handler.get_tables()
+        tables = db_handler.get_tables()
         # if not in database, add it
         if table_name not in tables:
-            result = handler.create_table(table_name)
+            result = db_handler.create_table(table_name)
             if not result:
                 result = Response(status=201)
                 if size > 0:
@@ -136,7 +134,7 @@ def delete_table(table_name, **kwargs):
     Returns:
         [Response] -- [HTTP response code]
     """
-    result = handler.drop_table(table_name)
+    result = db_handler.drop_table(table_name)
     return Response(status=200) if not result else Response(status=304)
 
 
@@ -149,7 +147,7 @@ def clear_table(table_name, **kwargs):
     Returns:
         [Response] -- [HTTP response code]
     """
-    result = handler.clear_table(table_name)
+    result = db_handler.clear_table(table_name)
     return Response(status=200) if not result else Response(status=304)
 
 
@@ -162,23 +160,15 @@ def backup_db(**kwargs):
 
     global file_scheduler
     # create a backup and a random file
-    response = handler.create_backup(False)
-    temporary_file_name = get_random_filename() + ".gz"
-    if temporary_file_name in os.walk(PUBLIC_PATH):
-        while temporary_file_name in os.walk(PUBLIC_PATH):
-            temporary_file_name = get_random_filename() + ".gz"
-
+    response = db_handler.create_backup(False)
+    # uuid is always unique - no need to check
+    temporary_file_name = db_handler.get_random_filename() + ".zip"
     # move the random file to the public folder
     temporary_file_path = os.path.join(PUBLIC_PATH, temporary_file_name)
 
     # copy all the data from the backup to the new file
-    with open(temporary_file_path, "wb") as temp_file:
-        with open(
-                os.path.join(
-                    os.path.abspath("backups"),
-                    "backup_latest_%s.gz" % handler.DB_NAME),
-                "rb") as backup_file:
-            temp_file.writelines(backup_file.readlines())
+    shutil.copyfile(os.path.join(db_handler.BACKUP_PATH,
+                                 "backup_latest.zip"), temporary_file_path)
 
     # add a job to the file scheduler to delete the file after 10 minutes
     file_scheduler.add_job(
@@ -195,6 +185,17 @@ def backup_db(**kwargs):
         return jsonify(os.path.relpath(temporary_file_path)), 200
 
 
+def restart_self():
+    calls = ["python3", "py3", "python", "py"]
+    i = 0
+    call = calls[i]
+    while not os.getenv(call) and i < len(calls) - 1:
+        i += 1
+        call = call[i]
+    subprocess.Popen([call, os.path.realpath(__file__)])
+    exit(0)
+
+
 def restore_db(filepath, **kwargs):
     # TODO documentation after implementation
     """restores the database from the provided gz backup
@@ -205,8 +206,12 @@ def restore_db(filepath, **kwargs):
     Returns:
         [Response] -- [HTTP response code]
     """
-
-    # TODO implementation
+    global currently_restoring
+    currently_restoring = True
+    response = db_handler.restore_db(filepath)
+    if response:
+        return Response(status=400)
+    threading.Thread(target=restart_self).start()
     return Response(status=201)
 
 
@@ -237,19 +242,19 @@ def add_entries(table_name, size, **kwargs):
             # create a list of unique codes (check if they are in the table already)
             codes = []
             result = 1
-            cursor_wrapper = handler.get_cursor()
+            cursor_wrapper = db_handler.get_cursor()
             while len(codes) < size:
                 code = str(get_random_code(CODE_LENGTH))
                 # create a new code if the old one is in the table already
-                while ((code in codes) and (not handler.select_row(
-                        handler.COLUMNS[1], code, table_name, cursor_wrapper,
+                while ((code in codes) and (not db_handler.select_row(
+                        db_handler.COLUMNS[1], code, table_name, cursor_wrapper,
                         False))):
                     code = str(get_random_code(CODE_LENGTH))
                 codes.append(code)
             if codes != []:
                 # insert codes into the table
-                result = handler.add_entries(codes, table_name, cursor_wrapper,
-                                             True)
+                result = db_handler.add_entries(codes, table_name, cursor_wrapper,
+                                                True)
             return Response(status=201) if not result else Response(status=304)
         except pool.PoolError as f:
             print(f)
@@ -273,7 +278,7 @@ def select_code(table_name, code, **kwargs):
 
     if not table_name or not code:
         return Response(status=400)
-    result = handler.select_row("code", code, table_name)
+    result = db_handler.select_row("code", code, table_name)
     if result:
         return jsonify(result), 200
     else:
@@ -293,7 +298,7 @@ def update_code(table_name, code, **kwargs):
 
     if not table_name or not code:
         return Response(status=400)
-    result = handler.check_and_update_code(code, table_name)
+    result = db_handler.check_and_update_code(code, table_name)
     if result != 1:
         return jsonify(result), 200
     else:
@@ -316,7 +321,7 @@ def add_users(table_name, users, **kwargs):
         users = [users]
     # check if users and table_name exist
     if isinstance(users, list) and table_name:
-        result = handler.get_tables()
+        result = db_handler.get_tables()
         # check if the specified table exists
         if table_name in result:
             # if yes, then add users assigned to this table
@@ -381,12 +386,12 @@ def assigned_user_table(user, **kwargs):
 
 def export_tickets(table_name, file_format, per_page, **kwargs):
     codes = []
-    result_list = handler.export_table(table_name)
+    result_list = db_handler.export_table(table_name)
     if result_list == 1 or type(result_list) != list:
         return Response(status=400)
     result_list = sorted(result_list, key=lambda k: k["id"])
     for dictionary in result_list:
-        codes.append(dictionary[handler.COLUMNS[1]])
+        codes.append(dictionary[db_handler.COLUMNS[1]])
     filename = tickets.export_codes(codes)
     return jsonify(filename), 200
 
@@ -450,6 +455,8 @@ def ui(method):
     Returns:
         [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
+    if currently_restoring:
+        return Response(status=503)
 
     # read json post body
     try:
@@ -475,6 +482,8 @@ def ui(method):
 
 @api.route("/api/client/check_login", methods=["POST"])
 def check_login(**kwargs):
+    if currently_restoring:
+        return Response(status=503)
     try:
         user = request.headers["Authorization"].replace("Basic ", "")
         user = base64.b64decode(user).decode('utf-8').split(":")[0]
@@ -497,6 +506,8 @@ def client(**kwargs):
     Returns:
         [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
+    if currently_restoring:
+        return Response(status=503)
     # rear input json and initialize table_name for the user
     method = "update_code"
     try:
@@ -535,6 +546,8 @@ def get_file(filename):
     Returns:
         [Response OR Attachment] -- [HTTP response code OR attachment containing the file]
     """
+    if currently_restoring:
+        return Response(status=503)
 
     # return file as an attachement if exists
     filepath = os.path.join(PUBLIC_PATH, filename)
@@ -565,19 +578,19 @@ if __name__ == "__main__":
     file_scheduler.start()
     print("Started file scheduler.")
 
-    tickets_backup_scheduler = BackgroundScheduler()
-    tickets_backup_scheduler.add_job(
-        handler.create_backup,
-        args=[True, handler.DB_NAME],
-        id="tickets_backup_scheduler",
+    backup_scheduler = BackgroundScheduler()
+    backup_scheduler.add_job(
+        db_handler.create_backup,
+        args=[True, [db_handler.DB_NAME, auth_handler.DB_NAME]],
+        id="backup_scheduler",
         trigger='interval',
         hours=1)
-    tickets_backup_scheduler.start()
-    print("Started tickets backup scheduler.")
+    backup_scheduler.start()
+    print("Started backup scheduler.")
 
     users_backup_scheduler = BackgroundScheduler()
     users_backup_scheduler.add_job(
-        handler.create_backup,
+        db_handler.create_backup,
         args=[True, auth_handler.DB_NAME],
         id="users_backup_scheduler",
         trigger='interval',
@@ -586,12 +599,12 @@ if __name__ == "__main__":
     print("Started users backup scheduler.")
 
     # at exit, finish all schedulers
-    atexit.register(delete_listener, file_scheduler)
-    atexit.register(tickets_backup_scheduler.shutdown)
+    atexit.register(onexit_scheduler_closer, file_scheduler)
+    atexit.register(backup_scheduler.shutdown)
     atexit.register(users_backup_scheduler.shutdown)
 
     # create pools for both handlers
-    handler.pg_pool.get_pool()
+    db_handler.pg_pool.get_pool()
     auth_handler.pool_init()
 
     # if logging is true, log everything to api_log.log
@@ -610,4 +623,4 @@ if __name__ == "__main__":
     # start the server
 
     basic_auth = BasicAuth(api)
-    api.run(debug=True, port=5000, use_reloader=False, host="0.0.0.0")
+    api.run(debug=True, port=5000, use_reloader=True, host="0.0.0.0")

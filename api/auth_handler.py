@@ -5,13 +5,13 @@ import db_handler
 
 # TODO
 
-POOL_SIZE = 100
-COLUMNS = ("username", "tablename")
-USER = "postgres"
-DB_NAME = "users"
-PORT = "5432"
-HOST = "localhost"
-TABLE_NAME = "users"
+POOL_SIZE = 50
+COLUMNS = db_handler.AUTH_COLUMNS
+USER = db_handler.USER
+DB_NAME = db_handler.AUTH_DB_NAME
+PORT = db_handler.PORT
+HOST = db_handler.HOST
+TABLE_NAME = db_handler.AUTH_TABLE_NAME
 
 db_handler.AUTH_COLUMNS = COLUMNS
 db_handler.AUTH_DB_NAME = DB_NAME

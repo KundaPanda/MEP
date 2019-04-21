@@ -9,15 +9,29 @@
         @import url('https://fonts.googleapis.com/css?family=Open+Sans');
 
         @media print {
-            body {
-                visibility: hidden;
+
+            header nav,
+            footer {
+                display: none;
             }
 
+        }
+
+        @media screen {
+            body {
+                width: 2360px;
+            }
         }
 
         @page {
             size: 210mm 297mm;
             margin: 0;
+            padding: 0;
+        }
+
+        html {
+            transform: scale(0.32);
+            transform-origin: top left;
         }
 
         body * {
@@ -25,14 +39,12 @@
         }
 
         body {
-            transform: scale(0.32);
-            transform-origin: top left;
             background-color: #fff;
             padding: 0;
             margin: 0;
             display: block;
-            visibility: hidden;
             font-family: 'Open Sans', sans-serif;
+            width: 2360px;
         }
 
         [class*="codes"] {
@@ -54,7 +66,7 @@
             margin-bottom: 10px;
             text-align: center;
             font-size: 60px;
-            padding: 15px;
+            padding: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -148,9 +160,11 @@
             grid-row: 2;
         }
     </style>
+    <script src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/0.9.0rc1/jspdf.min.js"></script>
 </head>
 
-<body id="render_me">
+<body>
     <div class="codes-1">
         <div class="ticket-1">
             <div class="qr-1">

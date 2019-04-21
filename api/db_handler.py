@@ -8,17 +8,21 @@ import subprocess
 import gzip
 import os
 from datetime import datetime
+import uuid
+import zlib
+import zipfile
 
 # MAXIMUM TABLE NAME LENGTH = 40 CHARACTERS
 
-AUTH_DB_NAME = ""
-AUTH_COLUMNS = ""
-AUTH_TABLE_NAME = ""
+AUTH_DB_NAME = "users"
+AUTH_COLUMNS = ("username", "tablename")
+AUTH_TABLE_NAME = "users"
 
 # TODO: Create different classes by functionality maybe?
 # TODO: refractor function arguments
 # TODO: proper pool usage
 
+BACKUP_COUNT = 10
 DEFAULT_TABLE_NAME = "tickets"
 POOL_SIZE = 100
 COLUMNS = ("id", "code", "used", "time")
@@ -26,10 +30,11 @@ USER = "postgres"
 DB_NAME = "tickets"
 PORT = "5432"
 HOST = "localhost"
-BACKUP_NAMES = ["backup_latest_%s.gz" % DB_NAME]
-for i in range(1, 10):
-    i = str(i)
-    BACKUP_NAMES.append("backup" + "0" * (2 - len(i)) + i + "_%s.gz" % DB_NAME)
+BACKUP_NAMES = ["backup_latest.zip"] + ["backup_" + "0" *
+                                        (2 - len(str(i))) + str(i) + ".zip" for i in range(1, BACKUP_COUNT)]
+# for i in range(1, 10):
+#     i = str(i)
+#     BACKUP_NAMES.append("backup" + "0" * (2 - len(i)) + i + ".gz")
 BACKUP_PATH = os.path.abspath("backups")
 
 
@@ -187,6 +192,16 @@ class get_cursor:
         if self.cursor:
             self.cursor.close()
         self.master_pool.pool.putconn(self.connection)
+
+
+def get_random_filename():
+    """creates a random filename based on uuid
+
+    Returns:
+        [string] -- [generated filename]
+    """
+
+    return str(uuid.uuid4())
 
 
 def create_dict_result(results, columns=COLUMNS):
@@ -685,7 +700,7 @@ def rename_backups(index=0):
                       os.path.join(BACKUP_PATH, BACKUP_NAMES[index + 1]))
 
 
-def create_backup(scheduled=True, database=DB_NAME):
+def create_backup(scheduled=True, databases=[DB_NAME, AUTH_DB_NAME]):
     """creates a predefined backup structure
 
     Keyword Arguments:
@@ -697,31 +712,94 @@ def create_backup(scheduled=True, database=DB_NAME):
     """
 
     if scheduled:
-        print("Starting scheduled '%s' database backup." % database)
+        print("Starting scheduled '%s' database backup." % databases)
     else:
-        print("Starting requested '%s' database backup." % database)
+        print("Starting requested '%s' database backup." % databases)
     # make the latest backup unused
     rename_backups()
-    try:
-        if not os.path.isdir(BACKUP_PATH):
-            os.mkdir(BACKUP_PATH)
-        # create backup_latest.gz file and write into it from pg_dump command (dumps the whole database)
-        latest_file_path = os.path.join(BACKUP_PATH,
-                                        "backup_latest_%s.gz" % database)
-        open(latest_file_path, "wb+").close()
+    backups = []
+    for database in databases:
+        desired_file_path = os.path.join(
+            BACKUP_PATH, "backup_latest_%s.gz" % database)
+        try:
+            if not os.path.isdir(BACKUP_PATH):
+                os.mkdir(BACKUP_PATH)
+            # create backup_latest.gz file and write into it from pg_dump command (dumps the whole database)
+            latest_file_path = os.path.join(BACKUP_PATH,
+                                            "%s.gz" % get_random_filename())
+            popen = subprocess.Popen(
+                ("pg_dump -h %s -U %s -p %s -f %s -F tar -d %s -w" %
+                 (HOST, USER, PORT, latest_file_path, database)),
+                shell=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            result, error = popen.communicate()
+            error = error.decode("utf-8")
+            if error != "":
+                print(error)
+                print("Backup failed! @ %s" % time.strftime(
+                    "%a, %d %b %Y %H:%M:%S", time.gmtime()))
+                return 1
+            os.renames(latest_file_path, desired_file_path)
+            backups.append(desired_file_path)
+        except Exception as e:
+            print(e)
+            return 1
+    print("Backup successful! @ %s" % time.strftime(
+        "%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    merge_backups(backups, os.path.join(BACKUP_PATH, "backup_latest"))
+    for f in backups:
+        os.remove(f)
+    return 0
 
+
+def merge_backups(files, output_file):
+    print("merging")
+    compression = zipfile.ZIP_DEFLATED
+
+    # new zip file
+    # open("%s.zip", "w+").close()
+    zf = zipfile.ZipFile(("%s.zip" % (output_file)), mode="w")
+    try:
+        for afile in files:
+            # add all files to zip
+            zf.write(afile, afile.split("/")[-1], compress_type=compression)
+
+    except FileNotFoundError:
+        print("Error compressing.")
+
+    finally:
+        zf.close()
+
+
+def restore_db(filepath):
+    print("Started databases restore.")
+    if not os.path.isdir("restore"):
+        os.mkdir("restore")
+    restore_path = os.path.abspath("restore")
+    zipped = zipfile.ZipFile(filepath, "r")
+    zipped.extractall(restore_path)
+    zipped.close()
+    response = 0
+    for f in os.walk(restore_path):
+        restore_name = f.split("_")[-1]
         popen = subprocess.Popen(
-            ("pg_dump -h %s -U %s -p %s -f %s -F tar -d %s -w" %
-             (HOST, USER, PORT, latest_file_path, DB_NAME)),
+            ("pg_restore --dbname=%s --create --verbose %s" %
+             (restore_name, f)),
             shell=True,
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE)
-        result = popen.communicate()[0]
-        for line in result:
-            print(line)
-        print("Backup successful! @ %s" % time.strftime(
-            "%a, %d %b %Y %H:%M:%S", time.gmtime()))
-        return 0
-    except Exception as e:
-        print(e)
-        return 1
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        result, error = popen.communicate()
+        error = error.decode("utf-8")
+        if error != "":
+            print(error)
+            print("Restore of %s failed! @ %s" % (restore_name, time.strftime(
+                "%a, %d %b %Y %H:%M:%S", time.gmtime())))
+            response = 1
+        else:
+            print("Restore of %s successful! @ %s" % (restore_name, time.strftime(
+                "%a, %d %b %Y %H:%M:%S", time.gmtime())))
+        os.remove(f)
+    return response

@@ -3,6 +3,7 @@ import os
 from bs4 import BeautifulSoup
 import base64
 from io import BytesIO
+import shutil
 
 QR_PATH = "qr"
 PUBLIC_PATH = "public"
