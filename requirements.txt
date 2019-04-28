@@ -1,3 +1,0 @@
-API:
-- pip: flask, psycopg2, APScheduler, qrcode, beautifulsoup4, flask_basicauth, shutil
-- OS: postgresql
