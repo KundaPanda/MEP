@@ -29,7 +29,7 @@ COLUMNS = ("id", "code", "used", "time")
 USER = "postgres"
 DB_NAME = "tickets"
 PORT = "5432"
-HOST = "localhost"
+HOST = "postgresql-mep" # name of docker container with db
 BACKUP_NAMES = ["backup_latest.zip"] + ["backup_" + "0" *
                                         (2 - len(str(i))) + str(i) + ".zip" for i in range(1, BACKUP_COUNT)]
 # for i in range(1, 10):
