@@ -28,3 +28,6 @@ tempCodeRunnerFile.py
 node_modules/
 
 app/.gradle/*
+
+# postgresql data
+data/*
