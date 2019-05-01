@@ -4,9 +4,10 @@
 **!!! psycopg2 nahrazeno psycopg2-binary, neni nutne instalovat postgresql-client, balicek jej jiz obssahuje !!!**<br>
 
 ## TODO:
-* **incializace postgres do shell scriptu (z textu to neni moc deterministicky)**
+* add reverse proxy to docker
+* admin UI
 * licence?
-* http cesty (/db/ /db/table/ )?
+* http cesty (/db/ /db/table/ ) ... testy?
 * dokumentace obsahu postgres
 * dokumentace trid/metod
 
@@ -38,4 +39,3 @@
 * Webové rozhraní testováno manuálně (automatizace pro tento rozsah by byal neefektivní)
 * + testování zátěže (skrz proxy)
 * + test úspěšného obnovení z exportu/zálohy
-
