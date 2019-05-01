@@ -1,10 +1,11 @@
-FROM python:3-alpine
-
-RUN pip install -r /app/requirements.txt
+FROM python:3
 
 ADD . /api
 WORKDIR /api
 
-EXPOSE 80
+RUN pip install --upgrade pip
+RUN pip install -r /api/requirements.txt
 
-ENTRYPOINT [ "python /api/api.py" ]
+EXPOSE 5000
+
+ENTRYPOINT [ "python", "/api/api.py" ]
