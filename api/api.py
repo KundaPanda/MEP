@@ -237,7 +237,8 @@ def add_entries(table_name, size, **kwargs):
         if size < 0:
             return Response(status=400)
         elif size == 0:
-            return Response(status=201)
+            print("no codes")
+            return Response(status=200)
         table_name = str(table_name)
     except Exception as e:
         # invalid request parameters
@@ -256,6 +257,7 @@ def add_entries(table_name, size, **kwargs):
                         False))):
                     code = str(get_random_code(CODE_LENGTH))
                 codes.append(code)
+            print(codes)
             if codes != []:
                 # insert codes into the table
                 result = db_handler.add_entries(codes, table_name, cursor_wrapper,
@@ -282,10 +284,18 @@ def select_code(table_name, code, **kwargs):
     if not table_name or not code:
         return Response(status=400)
     result = db_handler.select_row("code", code, table_name)
-    if result:
-        return jsonify(result), 200
-    else:
+    if result == 1:
         return Response(status=400)
+    return jsonify(result), 200
+
+
+def insert_code(table_name, code, **kwargs):
+    if not table_name or not code:
+        return Response(status=400)
+    result = db_handler.add_entries([code], table_name)
+    if not result:
+        return Response(status=200)
+    return Response(status=304)
 
 
 def update_code(table_name, code, **kwargs):
@@ -451,7 +461,8 @@ methods_ui = {
     "assigned_user_table": assigned_user_table,
     "export_tickets": export_tickets,
     "reassign_users": reassign_users,
-    "delete_users": delete_users
+    "delete_users": delete_users,
+    "insert_code": insert_code,
 }
 
 # parameters required by each method
@@ -472,6 +483,7 @@ parameter_names = {
     "export_tickets": ["table_name", "file_format", "per_page"],
     "reassign_users": ["users", "table_name"],
     "delete_users": ["users"],
+    "insert_code": ["code", "table_name"],
 }
 
 parameters = {
