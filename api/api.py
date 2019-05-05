@@ -237,7 +237,7 @@ def add_entries(table_name, size, **kwargs):
         if size < 0:
             return Response(status=400)
         elif size == 0:
-            return Response(status=200)
+            return Response(status=201)
         table_name = str(table_name)
     except Exception as e:
         # invalid request parameters
@@ -285,7 +285,7 @@ def select_code(table_name, code, **kwargs):
     if result:
         return jsonify(result), 200
     else:
-        return Response(status=418)
+        return Response(status=400)
 
 
 def update_code(table_name, code, **kwargs):
@@ -397,7 +397,7 @@ def export_tickets(table_name, file_format, per_page, **kwargs):
     for dictionary in result_list:
         codes.append(dictionary[db_handler.COLUMNS[1]])
     filename = tickets.export_codes(codes)
-    return jsonify(filename), 200
+    return jsonify({"path": filename}), 200
 
 
 def reassign_users(users, table_name, **kwargs):
