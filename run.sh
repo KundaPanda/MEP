@@ -20,11 +20,17 @@ docker network create mep > /dev/null 2>&1
 # postgres
 docker container run -d \
   --name postgresql-mep \
-  --user "$(id -u):$(id -g)" -v /etc/passwd:/etc/passwd:ro \
-  -v ${PWD}/data:/var/lib/postgresql/data \
   --net mep \
   --restart unless-stopped \
   postgres:alpine
+
+# docker container run -d \
+# --name postgresql-mep \
+# --user "$(id -u):$(id -g)" -v /etc/passwd:/etc/passwd:ro \
+# -v ${PWD}/data:/var/lib/postgresql/data \
+# --net mep \
+# --restart unless-stopped \
+# postgres:alpine
 
 # api
 docker build -t autisti/api-mep ${PWD}/api
