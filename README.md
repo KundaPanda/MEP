@@ -1,7 +1,10 @@
 # Systém pro kontrolu vstupenek s využítím QR kódů
 
-**!!! odstraneno api/install_requiments... místo něj používat "pip install -r api/requirements.txt" !!!**<br>
-**!!! psycopg2 nahrazeno psycopg2-binary, neni nutne instalovat postgresql-client, balicek jej jiz obssahuje !!!**<br>
+## Getting started:
+0. Have up-to-date linux distro
+1. Have [docker](https://docs.docker.com/install/) installed
+2. Run: "source run.sh"
+3. Use "export-data" and "import-data" to for migrating your entire database
 
 ## TODO:
 * add reverse proxy to docker

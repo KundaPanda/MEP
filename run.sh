@@ -31,7 +31,7 @@ docker build -t autisti/api-mep ${PWD}/api
 docker container run -d \
   --name api-mep \
   --net mep \
-  -p 80:5000 \
+  -p 5000:5000 \
   --restart unless-stopped \
   autisti/api-mep
 
@@ -48,17 +48,22 @@ docker container run -d \
 
 # docker logs api-mep
 
-# function export-data() {
-#   docker stop postgresql-mep
-#   docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar cvf /backup/backup.tar /data
-#   docker start postgresql-mep
-# }
+function export-data() {
+  if [[ `docker ps --format '{{.Names}}' | grep postgresql-mep | wc -l` -gt 0 ]]; then
+    docker stop postgresql-mep
+    docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar cvf /backup/backup.tar /var/lib/postgresql/data
+    docker start postgresql-mep
+  elseo
+    echo "Container postgresql-mep doesn't exit!"
+  fi
+}
 
-# function import-data() {
-#   if [[ `docker ps --format '{{.Names}}' | grep postgresql-mep | wc -l` -gt 0 ]]; then
-#     docker stop postgresql-mep
-#     docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar xvf /backup/${1:-backup.tar}
-#     docker start postgresql-mep
-#   else
-
-# }
+function import-data() {
+  if [[ `docker ps --format '{{.Names}}' | grep postgresql-mep | wc -l` -gt 0 ]]; then
+    docker stop postgresql-mep
+    docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar xvf /backup/${1:-backup.tar}
+    docker start postgresql-mep
+  else
+    echo "Container postgresql-mep doesn't exit!"
+  fi
+}
