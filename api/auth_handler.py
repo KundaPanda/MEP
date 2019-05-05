@@ -39,7 +39,8 @@ def add_users(users,
         table {string} -- [name of the table to add to these users]
 
     Keyword Arguments:
-        cursor_wrapper {db_handler.get_cursor} -- [cursor wrapper to be executed with (for multiple actions with a single cursor)] (default: {new wrapper})
+        cursor_wrapper {db_handler.get_cursor} -- [cursor wrapper to be executed with (for multiple actions with
+            a single cursor)] (default: {new wrapper})
         dispose {boolean} -- [whether to dispose the cursor_wrapper after execution] (default: {True})
         users_column {string} -- [name of the column usernames are stored in] (default: {COLUMNS[0]})
         tables_column {string} -- [name of the column table names are stored in] (default: {COLUMNS[1]})
@@ -112,3 +113,42 @@ def delete_all_users_for_table(table_name):
     result = db_handler.delete_entry(table_name, TABLE_NAME, COLUMNS[1],
                                      cursor_wrapper)
     return result
+
+
+def reassign_users(users, table_name):
+    """reassigns list of users to a different table
+
+    Arguments:
+        users {[list]} -- [usernames to be reassigned]
+        table_name {[string]} -- [name of the target table]
+
+    Returns:
+        [Boolean] -- [True if failed, False if OK]
+    """
+    cursor_wrapper = db_handler.get_cursor(pg_pool)
+    tables = db_handler.get_tables(cursor_wrapper, False)
+    if table_name not in tables:
+        return True
+    response = False
+    for user in users:
+        command = "UPDATE %s SET %s='%s' WHERE %s='%s'" % (
+            db_handler.AUTH_TABLE_NAME, db_handler.AUTH_COLUMNS[1], table_name,
+            db_handler.AUTH_COLUMNS[0], user)
+        response ^= db_handler.simple_sql_select(command, cursor_wrapper)
+    return response
+
+
+def delete_users(users):
+    """deletes multiple users from assignment table
+
+    Arguments:
+        users {[list]} -- [users to be removed]
+
+    Returns:
+        [Boolean] -- [True if failed, else False]
+    """
+    cursor_wrapper = db_handler.get_cursor(pg_pool)
+    response = False
+    for user in users:
+        response ^= db_handler.delete_entry(user, TABLE_NAME, COLUMNS[0])
+    return response

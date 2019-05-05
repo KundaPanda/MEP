@@ -65,7 +65,8 @@ def delete_file(afile, filename=None):
         afile {[string]} -- [absolute path to the file to be deleted]
 
     Keyword Arguments:
-        filename {[string]} -- [job_id (=filename) of the job to be removed (job calls this function upon execution to make sure it gets deleted after one successful removal)] (default: {None})
+        filename {[string]} -- [job_id (=filename) of the job to be removed (job calls this function upon execution
+            to make sure it gets deleted after one successful removal)] (default: {None})
 
     Returns:
         [boolean] -- [False if successful else True]
@@ -186,6 +187,10 @@ def backup_db(**kwargs):
 
 
 def restart_self():
+    """
+        calls itself in a new background thread and then kills the current process
+        necessary for reconnecting the database -> TODO: reconnect new database instead of restarting the api
+    """
     calls = ["python3", "py3", "python", "py"]
     i = 0
     call = calls[i]
@@ -235,8 +240,8 @@ def add_entries(table_name, size, **kwargs):
             return Response(status=200)
         table_name = str(table_name)
     except Exception as e:
-        print(e)
-        return Response(status=417)
+        # invalid request parameters
+        return Response(status=400)
     if table_name and size:
         try:
             # create a list of unique codes (check if they are in the table already)
@@ -256,11 +261,9 @@ def add_entries(table_name, size, **kwargs):
                 result = db_handler.add_entries(codes, table_name, cursor_wrapper,
                                                 True)
             return Response(status=201) if not result else Response(status=304)
-        except pool.PoolError as f:
-            print(f)
+        except pool.PoolError:
             return Response(status=500)
-        except Exception as e:
-            print(e)
+        except Exception:
             return Response(status=304)
     return Response(status=400)
 
@@ -293,7 +296,8 @@ def update_code(table_name, code, **kwargs):
         table_name {[string]} -- [name of the table to be searched]
 
     Returns:
-        [json OR Response] -- [json with row containing the code before modifiaction and HTTP response code OR HTTP response code]
+        [json OR Response] -- [json with row containing the code before modifiaction and HTTP response code
+            OR HTTP response code]
     """
 
     if not table_name or not code:
@@ -379,8 +383,8 @@ def assigned_user_table(user, **kwargs):
     result = 1
     try:
         result = auth_handler.find_corresponding_table(user)
-    except Exception as e:
-        print(e)
+    except Exception:
+        return Response(status=400)
     return Response(status=400) if result == 1 else (jsonify(result), 200)
 
 
@@ -394,6 +398,41 @@ def export_tickets(table_name, file_format, per_page, **kwargs):
         codes.append(dictionary[db_handler.COLUMNS[1]])
     filename = tickets.export_codes(codes)
     return jsonify(filename), 200
+
+
+def reassign_users(users, table_name, **kwargs):
+    """reassigns users to a differernt table
+
+    Arguments:
+        users {[list]} -- [list of users to be reassigned]
+        table_name {[string]} -- [target table name]
+
+    Returns:
+        [Response] -- [400 if failed, else 200]
+    """
+    try:
+        users = list(users)
+    except Exception:
+        return Response(status=400)
+    response = auth_handler.reassign_users(users, table_name)
+    return Response(status=400) if response else Response(status=200)
+
+
+def delete_users(users, **kwargs):
+    """deletes multiple users from assignment table
+
+    Arguments:
+        users {[list]} -- [list of users to be deleted]
+
+    Returns:
+        [Response] -- [400 if failed else 200]
+    """
+    try:
+        users = list(users)
+    except Exception:
+        return Response(status=400)
+    response = auth_handler.delete_users(users)
+    return Response(status=400) if response else Response(status=200)
 
 
 # methods that can be called from /api/ui/<method>
@@ -411,6 +450,8 @@ methods_ui = {
     "delete_users_for_table": delete_users_for_table,
     "assigned_user_table": assigned_user_table,
     "export_tickets": export_tickets,
+    "reassign_users": reassign_users,
+    "delete_users": delete_users
 }
 
 # parameters required by each method
@@ -428,7 +469,9 @@ parameter_names = {
     "delete_all_users": [],
     "delete_users_for_table": ["table_name"],
     "assigned_user_table": ["user"],
-    "export_tickets": ["table_name", "file_format", "per_page"]
+    "export_tickets": ["table_name", "file_format", "per_page"],
+    "reassign_users": ["users", "table_name"],
+    "delete_users": ["users"],
 }
 
 parameters = {
@@ -455,6 +498,7 @@ def ui(method):
     Returns:
         [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
+    global currently_restoring
     if currently_restoring:
         return Response(status=503)
 
@@ -482,6 +526,7 @@ def ui(method):
 
 @api.route("/api/client/check_login", methods=["POST"])
 def check_login(**kwargs):
+    global currently_restoring
     if currently_restoring:
         return Response(status=503)
     try:
@@ -506,6 +551,7 @@ def client(**kwargs):
     Returns:
         [Response OR Json and Response] -- [HTTP response code OR json with data and HTTP response code]
     """
+    global currently_restoring
     if currently_restoring:
         return Response(status=503)
     # rear input json and initialize table_name for the user
@@ -546,6 +592,7 @@ def get_file(filename):
     Returns:
         [Response OR Attachment] -- [HTTP response code OR attachment containing the file]
     """
+    global currently_restoring
     if currently_restoring:
         return Response(status=503)
 
