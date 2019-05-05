@@ -1,10 +1,15 @@
-FROM python:3
+FROM python:3-alpine
 
 ADD . /api
 WORKDIR /api
 
-RUN pip install --upgrade pip
-RUN pip install -r /api/requirements.txt
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    python3-dev \
+    musl-dev \
+    postgresql-dev \
+    && pip install --no-cache-dir -r /api/requirements.txt \
+    && apk del --no-cache .build-deps
 
 EXPOSE 5000
 

@@ -6,8 +6,7 @@ Flask-BasicAuth==0.2.0
 itsdangerous==1.1.0
 Jinja2==2.10.1
 MarkupSafe==1.1.1
-pdfkit==0.6.1
-psycopg2-binary==2.8.2
+psycopg2==2.8.2
 pytz==2019.1
 qrcode==6.1
 six==1.12.0

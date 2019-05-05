@@ -16,7 +16,7 @@
 
 ## Součásti aplikace:
 * api
-  * **pip:** flask, psycopg2-binary, APScheduler, qrcode, beautifulsoup4, flask_basicauth, shutil
+  * **pip:** flask, psycopg2, APScheduler, qrcode, beautifulsoup4, flask_basicauth
   * python 3.7+
 * nginx
   * reverse proxy
