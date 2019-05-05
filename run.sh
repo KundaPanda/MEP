@@ -22,15 +22,9 @@ docker container run -d \
   --name postgresql-mep \
   --net mep \
   --restart unless-stopped \
+  -p 127.0.0.1:5432:5432/tcp \
+  -v postresql-mep-data:/var/lib/postgresql/data \
   postgres:alpine
-
-# docker container run -d \
-# --name postgresql-mep \
-# --user "$(id -u):$(id -g)" -v /etc/passwd:/etc/passwd:ro \
-# -v ${PWD}/data:/var/lib/postgresql/data \
-# --net mep \
-# --restart unless-stopped \
-# postgres:alpine
 
 # api
 docker build -t autisti/api-mep ${PWD}/api
@@ -53,4 +47,18 @@ docker container run -d \
 #   nginx:alpine
 
 # docker logs api-mep
-# docker logs postgresql-mep
+
+# function export-data() {
+#   docker stop postgresql-mep
+#   docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar cvf /backup/backup.tar /data
+#   docker start postgresql-mep
+# }
+
+# function import-data() {
+#   if [[ `docker ps --format '{{.Names}}' | grep postgresql-mep | wc -l` -gt 0 ]]; then
+#     docker stop postgresql-mep
+#     docker run --rm --volumes-from postgresql-mep -v $(pwd):/backup busybox tar xvf /backup/${1:-backup.tar}
+#     docker start postgresql-mep
+#   else
+
+# }
