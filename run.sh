@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# this is because of file permissions in postres data volume, which is mounted from host filesystem
+if [[ $EUID -eq 0 ]]; then
+   echo "This script SHOULDN'T be run as root"
+   exit 1
+fi
+# to use docker without root/sudo, add your user to "docker" group and reboot
+# sudo groupadd docker
+# sudo gpasswd -a <username> docker
+
 if [ ! -e ${PWD}/data ]; then
   mkdir -p ${PWD}/data
 fi
@@ -35,7 +44,7 @@ docker container run -d \
 #   -v ${PWD}/static:/usr/share/nginx/html:ro \
 #   -v ${PWD}/config/nginx.conf:/etc/nginx/nginx.conf:ro \
 #   --restart unless-stopped \
-#   nginx-alpine
+#   nginx:alpine
 
 # docker logs api-mep
 # docker logs postgresql-mep
