@@ -3,14 +3,14 @@ FROM python:3-alpine
 ADD . /api
 WORKDIR /api
 
-RUN apk add --no-cache --virtual .build-deps \
+RUN apk add --no-cache \
     gcc \
     python3-dev \
     musl-dev \
     postgresql-dev \
-    && pip install --no-cache-dir -r /api/requirements.txt \
-    && apk del --no-cache .build-deps
+    && pip install --no-cache-dir -r /api/requirements.txt
 
+RUN echo "Europe/Prague" > /etc/timezone
 EXPOSE 5000
 
 ENTRYPOINT [ "python", "/api/api.py" ]

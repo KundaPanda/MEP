@@ -20,6 +20,7 @@ docker container run -d \
   --net mep \
   -p 5000:5000 \
   --restart unless-stopped \
+  -e TZ= \
   autisti/api-mep
 
 # nginx
