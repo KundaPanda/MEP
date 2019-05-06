@@ -13,4 +13,4 @@ RUN apk add --no-cache \
 RUN echo "Europe/Prague" > /etc/timezone
 EXPOSE 5000
 
-ENTRYPOINT [ "python", "/api/api.py" ]
+ENTRYPOINT [ "python", "-u", "/api/api.py" ]
