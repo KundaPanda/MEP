@@ -3,10 +3,18 @@ from fpdf import FPDF
 import qrcode
 import os
 import time
-from PyPDF2x import PdfFileMerger, PdfFileReader
+from PyPDF2 import PdfFileMerger, PdfFileReader
 
 
 def create_qr(data):
+    """creates a qr code from data
+
+    Arguments:
+        data {[string/integer]} -- [data to be contained in the code]
+
+    Returns:
+        [path] -- [path to created and saved image (png)]
+    """
     qr = qrcode.QRCode(
         version=2,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -85,6 +93,16 @@ def create_qr(data):
 
 
 def create_pdf_page(codes_array, start, stop, pdf=None):
+    """creates a single pdf page from codes_array[start:stop]
+
+    Arguments:
+        codes_array {[list]} -- [list of codes]
+        start {[int]} -- [starting index]
+        stop {[int]} -- [stop index]
+
+    Keyword Arguments:
+        pdf {[filepath]} -- [path to pdf to be appended to] (default: {None = new one will be created})
+    """
     if not pdf:
         pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.set_font('Arial')
@@ -120,7 +138,15 @@ def create_pdf_page(codes_array, start, stop, pdf=None):
 
 
 def create_pdf(codes_array, filename):
+    """creates multiple pdf files from codes_array and merges them into one
 
+    Arguments:
+        codes_array {[list]} -- [list of codes to export]
+        filename {[string]} -- [filename of the output]
+
+    Returns:
+        [path] -- [path to the generated pdf]
+    """
     total_gentime, total_savetime = 0, 0
     for pdf_part in range(len(codes_array) // 1000 + 1):
         upper_bound = len(codes_array)
@@ -146,11 +172,16 @@ def create_pdf(codes_array, filename):
     start = time.time()
     export_path = merge_pdf()
     stop = time.time()
-    print("Merge time: %.2f" % (stop - start))
+    # print("Merge time: %.2f" % (stop - start))
     return (export_path)
 
 
 def merge_pdf():
+    """merges multiple pdf files into one from folder api/public
+
+    Returns:
+        [path] -- [created file]
+    """
     filelist = [os.path.join(os.path.abspath("api/public"), f) for f in os.listdir(
         os.path.abspath("api/public")) if ('.pdf' in f)]
     merger = PdfFileMerger()
@@ -164,6 +195,18 @@ def merge_pdf():
 
 
 def export_codes(codes_array, export_format="pdf"):
+    """function to be called by the api, exports codes_array in a specified format (currently only pdf)
+
+    Arguments:
+        codes_array {[list]} -- [list of codes to be exported]
+
+    Keyword Arguments:
+        export_format {str} -- [export format type] (default: {"pdf"})
+
+    Returns:
+        [path] -- [path to the generated file]
+    """
+    # cleanup, will be removed, only for testing
     filelist = [f for f in os.listdir(os.path.abspath("api/public"))]
     for f in filelist:
         os.remove(os.path.join(os.path.abspath("api/public"), f))
@@ -171,7 +214,5 @@ def export_codes(codes_array, export_format="pdf"):
     if export_format == 'pdf':
         return create_pdf(codes_array, 'export')
     else:
+        # redundant atm, future uses possible
         return create_pdf(codes_array, 'export')
-
-
-export_codes([i for i in range(10001)])

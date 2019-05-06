@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import db_handler
+import api.db_handler as db_handler
 
 # TODO
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import db_handler
-import auth_handler
-import tickets
+import api.db_handler as db_handler
+import api.auth_handler as auth_handler
+import api.pdf_generator as pdf_generator
 import json
 import os
 from flask import Flask, request, abort, jsonify, Response
@@ -402,7 +402,7 @@ def assigned_user_table(user, **kwargs):
     return Response(status=400) if result == 1 else (jsonify(result), 200)
 
 
-def export_tickets(table_name, file_format, per_page, **kwargs):
+def dump_table(table_name, print=False, **kwargs):
     codes = []
     result_list = db_handler.export_table(table_name)
     if result_list == 1 or type(result_list) != list:
@@ -410,7 +410,27 @@ def export_tickets(table_name, file_format, per_page, **kwargs):
     result_list = sorted(result_list, key=lambda k: k["id"])
     for dictionary in result_list:
         codes.append(dictionary[db_handler.COLUMNS[1]])
-    filename = tickets.export_codes(codes)
+    if print:
+        return codes
+    return jsonify(codes), 200
+
+
+def export_tickets(table_name, file_format, per_page, **kwargs):
+    """exports tickets into the desired printable format
+
+    Arguments:
+        table_name {[string]} -- [number of pages]
+        file_format {[string]} -- [desired export format (currently only pdf)]
+        per_page {[string]} -- [number of codes per page, currently only 8]
+
+    Returns:
+        [Response] -- [200 + json if success else 400]
+    """
+    codes = dump_table(table_name, True)
+    if not isinstance(codes, dict):
+        # error code 400
+        return codes
+    filename = pdf_generator.export_codes(codes, file_format)
     return jsonify({"path": filename}), 200
 
 
@@ -467,6 +487,7 @@ methods_ui = {
     "reassign_users": reassign_users,
     "delete_users": delete_users,
     "insert_code": insert_code,
+    "dump_table": dump_table,
 }
 
 # parameters required by each method
@@ -488,6 +509,7 @@ parameter_names = {
     "reassign_users": ["users", "table_name"],
     "delete_users": ["users"],
     "insert_code": ["code", "table_name"],
+    "dump_table": ["table_name"],
 }
 
 parameters = {
@@ -501,7 +523,7 @@ parameters = {
     "per_page": ""
 }
 
-optional_parameters = {"file_format": "html", "per_page": 8}
+optional_parameters = {"file_format": "pdf", "per_page": 8}
 
 
 @api.route("/api/ui/<method>", methods=["POST"])

@@ -273,7 +273,8 @@ def create_default_table_if_not_exists(database, user, host, port):
     connection.autocommit = True
     cursor = connection.cursor()
     table_name = AUTH_TABLE_NAME if database == AUTH_DB_NAME else DEFAULT_TABLE_NAME
-    sql_string = "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '%s')" % table_name
+    sql_string = """SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public'
+        AND table_name = '%s')""" % table_name
     # checks if table exists
     cursor.execute(sql_string)
     exists = cursor.fetchone()[0]
