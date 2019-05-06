@@ -15,7 +15,7 @@ docker container run -d \
 
 # api
 docker build -t autisti/api-mep ${PWD}/api
-docker container run -d \
+docker container run -dt \
   --name api-mep \
   --net mep \
   -p 5000:5000 \

@@ -20,6 +20,7 @@ import base64
 import shutil
 import subprocess
 import threading
+import ast
 
 # initialize the global api and file_scheduler variables
 api = Flask(__name__, template_folder="templates", static_folder="static")
@@ -78,7 +79,7 @@ def delete_file(afile, filename=None):
             file_scheduler.remove_job(filename)
         return 0
     except Exception as e:
-        print(e)
+        # print(e)
         return 1
 
 
@@ -237,7 +238,7 @@ def add_entries(table_name, size, **kwargs):
         if size < 0:
             return Response(status=400)
         elif size == 0:
-            print("no codes")
+            # print("no codes")
             return Response(status=200)
         table_name = str(table_name)
     except Exception as e:
@@ -257,7 +258,7 @@ def add_entries(table_name, size, **kwargs):
                         False))):
                     code = str(get_random_code(CODE_LENGTH))
                 codes.append(code)
-            print(codes)
+            # print(codes)
             if codes != []:
                 # insert codes into the table
                 result = db_handler.add_entries(codes, table_name, cursor_wrapper,
@@ -331,9 +332,11 @@ def add_users(table_name, users, **kwargs):
     """
 
     result = 1
+
     if (not isinstance(users, list)):
-        users = [users]
+        users = ast.literal_eval(users)
     # check if users and table_name exist
+    # print(users, table_name)
     if isinstance(users, list) and table_name:
         result = db_handler.get_tables()
         # check if the specified table exists
@@ -341,7 +344,8 @@ def add_users(table_name, users, **kwargs):
             # if yes, then add users assigned to this table
             result = auth_handler.add_users(users, table_name)
             if result == 1:
-                return Response(status=304)
+                return jsonify({"table": table_name, "users": users}), 304
+                # return Response(status=304)
         else:
             result = 1
     return Response(status=400) if (result == 1) else Response(status=200)
@@ -530,7 +534,10 @@ def ui(method):
                     continue
                 else:
                     abort(400)
-            parameters[parameter] = str(post_data[parameter])
+            if isinstance(post_data[parameter], list):
+                parameters[parameter] = post_data[parameter]
+            else:
+                parameters[parameter] = str(post_data[parameter])
         return (methods_ui[method](**parameters))
     else:
         abort(405)
@@ -549,7 +556,7 @@ def check_login(**kwargs):
             return Response(status="401")
         return Response(status="200")
     except Exception as e:
-        print(e)
+        # print(e)
         return Response(status="401")
 
 
@@ -573,7 +580,7 @@ def client(**kwargs):
         post_data = json.loads(post_data)
         post_data['table_name'] = None
     except Exception as e:
-        print(e)
+        # print(e)
         abort(400)
 
     # check if all required fields are filled
